@@ -1,0 +1,425 @@
+/* eslint-disable no-plusplus */
+
+import { html } from 'lit-element';
+import '@anypoint-web-components/anypoint-input/anypoint-input.js';
+import '@anypoint-web-components/anypoint-button/anypoint-button.js';
+import '@anypoint-web-components/anypoint-chip-input/anypoint-chip-input.js';
+import '@polymer/iron-form/iron-form.js';
+import '@advanced-rest-client/code-mirror/code-mirror.js';
+import { ArcModelEvents } from '@advanced-rest-client/arc-models';
+import {
+  ProjectsListConsumerMixin,
+  internals,
+} from '@advanced-rest-client/requests-list';
+import { RequestMetaDetailsElement } from './RequestMetaDetailsElement.js';
+import styles from './styles/RequestEditor.js';
+import {
+  requestValue,
+  requestChanged,
+  titleTemplate,
+  nameInputTemplate,
+  addressTemplate,
+  selectedProjectsValue,
+  overrideValue,
+  savingValue,
+  submitHandler,
+  overrideHandler,
+  computeEventDetail,
+  restoreProjects,
+  inputHandler,
+  projectsHandler,
+  cancelHandler,
+  saveHandler,
+  editorValueHandler,
+  descriptionTemplate,
+  actionsTemplate,
+  savedActionsTemplate,
+  unsavedActionsTemplate,
+  projectsTemplate,
+} from './internals.js';
+
+/** @typedef {import('@advanced-rest-client/requests-list/src/ProjectsListConsumerMixin').ProjectSelectionInfo} ProjectSelectionInfo */
+/** @typedef {import('@advanced-rest-client/arc-models').ARCSavedRequest} ARCSavedRequest */
+/** @typedef {import('@advanced-rest-client/arc-models').ARCHistoryRequest} ARCHistoryRequest */
+/** @typedef {import('@advanced-rest-client/arc-models').ARCProject} ARCProject */
+/** @typedef {import('@advanced-rest-client/arc-models').ARCProjectUpdatedEvent} ARCProjectUpdatedEvent */
+/** @typedef {import('lit-element').CSSResult} CSSResult */
+
+/**
+ * Cancels an event
+ * @param {Event} e
+ */
+function stopEvent(e) {
+  e.stopPropagation();
+}
+
+/**
+ * A dialog to edit request meta data.
+ *
+ * It requires `<request-model>` and `<project-model>` to be in the DOM to
+ * handle data queries.
+ *
+ * ## Usage
+ *
+ * Assign `request` property to a request object. The component decides
+ * what view to render (saved vs. not saved request).
+ *
+ * ```html
+ * <saved-request-editor request='{...}'></saved-request-editor>
+ * ```
+ *
+ * If the request has both `_id` and `_rev` properties (PouchDB properties)
+ * it renders "saved" view.
+ */
+export class RequestMetaEditorElement extends ProjectsListConsumerMixin(RequestMetaDetailsElement) {
+  /**
+   * @returns {CSSResult[]}
+   */
+  static get styles() {
+    return [
+      ...(/** @type CSSResult[] */ (RequestMetaDetailsElement.styles)),
+      styles,
+    ];
+  }
+
+  static get properties() {
+    return {
+      /**
+       * Name of the request.
+       */
+      name: { type: String },
+      /**
+       * Request description.
+       */
+      description: { type: String },
+      /**
+       * List of selected in the dialog project names.
+       */
+      selectedProjects: { type: Array },
+      /**
+       * Enables material's outlined theme for inputs.
+       */
+      outlined: { type: Boolean },
+    };
+  }
+
+  get selectedProjects() {
+    return this[selectedProjectsValue];
+  }
+
+  set selectedProjects(value) {
+    const old = this[selectedProjectsValue];
+    const oldSerialized = Array.isArray(old) ? JSON.stringify(old) : '';
+    const thisStringified = Array.isArray(value) ? JSON.stringify(value) : '';
+    if (oldSerialized === thisStringified) {
+      return;
+    }
+    this[selectedProjectsValue] = value;
+    this.requestUpdate();
+  }
+
+  /**
+   * Computes value for `isSaved` property.
+   * @return {Boolean}
+   */
+  get isSavedRequest() {
+    const request = this[requestValue];
+    if (!request) {
+      return false;
+    }
+    const history = !!(request && request.type === 'history');
+    return history ? false : !!request._rev;
+  }
+
+  constructor() {
+    super();
+    this.outlined = false;
+  }
+
+  /**
+   * @param {ARCProjectUpdatedEvent} e
+   */
+  async [internals.projectChangeHandler](e) {
+    await super[internals.projectChangeHandler](e);
+    this[requestChanged]();
+  }
+
+  /**
+   * Resets the state of the UI
+   */
+  reset() {
+    this.name = '';
+    this.description = '';
+    this.selectedProjects = [];
+  }
+
+  /**
+   * Sends the `cancel` custom event to cancel the edit.
+   */
+  [cancelHandler]() {
+    this.dispatchEvent(new CustomEvent('close'));
+  }
+
+  /**
+   * Sets `override` to `false` and sends the form.
+   */
+  [saveHandler]() {
+    this[overrideValue] = false;
+    this.send();
+  }
+
+  /**
+   * Sets `override` to `true` and sends the form.
+   */
+  [overrideHandler]() {
+    this[overrideValue] = true;
+    this.send();
+  }
+
+  /**
+   * Validates and submits the form.
+   */
+  send() {
+    const form = this.shadowRoot.querySelector('iron-form');
+    if (!form.validate()) {
+      return;
+    }
+    form.submit();
+  }
+
+  /**
+   * Sends the `save-request` custom event with computed detail object.
+   *
+   * @param {CustomEvent} e
+   */
+  async [submitHandler](e) {
+    e.preventDefault();
+    const { request, projects } = this[computeEventDetail]();
+    this[savingValue] = true;
+    this.requestUpdate();
+    const record = await ArcModelEvents.Request.store(this, 'saved', request, projects);
+    this[savingValue] = false;
+    this.request = record.item;
+    this.requestUpdate();
+    this.dispatchEvent(new CustomEvent('close'));
+  }
+
+  /**
+   * Computes `save-request` custom event's `detail` object
+   * @return {Object} A detail property of the event.
+   */
+  [computeEventDetail]() {
+    const storeRequest = /** @type ARCSavedRequest */ ({ ...this[requestValue] });
+    storeRequest.name = this.name;
+    storeRequest.description = this.description;
+    if (!this[overrideValue] && storeRequest._id) {
+      delete storeRequest._id;
+      delete storeRequest._rev;
+    }
+    const info = /** @type ProjectSelectionInfo */ (this[internals.computeProjectSelection](this.selectedProjects));
+    storeRequest.projects = info.existing;
+    return {
+      request: storeRequest,
+      projects: info.add.length ? info.add : undefined,
+    };
+  }
+
+  [requestChanged]() {
+    super[requestChanged]();
+    const request = /** @type ARCSavedRequest|ARCHistoryRequest */ (this[requestValue] || {});
+    if (!request) {
+      this.reset();
+      return;
+    }
+    const typed = /** @type ARCSavedRequest */ (request);
+    this.name = typed.name || '';
+    this.description = typed.description || '';
+    this[restoreProjects](typed);
+  }
+
+  /**
+   * Reads project data from the request object
+   * @param {ARCSavedRequest} request
+   */
+  [restoreProjects](request) {
+    const projects = /** @type ARCProject[] */ (this.projects || []);
+    let projectIds = [];
+    // @ts-ignore
+    if (request.legacyProject) {
+      // @ts-ignore
+      projectIds[projectIds.length] = request.legacyProject;
+    }
+    if (request.projects) {
+      projectIds = projectIds.concat(request.projects);
+    }
+    const projectsLen = (projects && projects.length);
+    if (projectsLen) {
+      const projectsData = [];
+      projectIds.forEach((id) => {
+        for (let i = 0; i < projectsLen; i++) {
+          if (projects[i]._id === id) {
+            projectsData[projectsData.length] = projects[i].name;
+            return;
+          }
+        }
+        projectsData[projectsData.length] = id;
+      });
+      this.selectedProjects = projectsData.length ? projectsData : undefined;
+    } else {
+      this.selectedProjects = projectIds.length ? projectIds : undefined;
+    }
+  }
+
+  [inputHandler](e) {
+    const { name, value } = e.target;
+    this[name] = value;
+  }
+
+  [projectsHandler](e) {
+    this.selectedProjects = e.detail.value;
+  }
+
+  [editorValueHandler](e) {
+    this.description = e.detail.value;
+  }
+
+  notifyResize() {
+    super.notifyResize();
+    const cm = this.shadowRoot.querySelector('#cm');
+    if (cm) {
+      // @ts-ignore
+      cm.refresh();
+    }
+  }
+
+  [titleTemplate]() {
+    const { isHistory, isStored } = this;
+    const isSaved = !isHistory;
+    return html`
+    <div class="title-area">
+      <h2 class="title">Request details</h2>
+      ${isSaved ? html`<span class="pill">Saved request</span>` : ''}
+      ${isHistory ? html`<span class="pill">History request</span>` : ''}
+      ${!isStored ? html`<span class="pill accent">Unsaved request</span>` : ''}
+    </div>`;
+  }
+
+  [nameInputTemplate]() {
+    const { name, compatibility, outlined } = this;
+    return html`
+    <anypoint-input
+      required
+      autoValidate
+      invalidMessage="Name is required"
+      .value="${name}"
+      name="name"
+      @input="${this[inputHandler]}"
+      ?compatibility="${compatibility}"
+      ?outlined="${outlined}"
+    >
+      <label slot="label">Request name (required)</label>
+    </anypoint-input>
+    `;
+  }
+
+  [descriptionTemplate]() {
+    const { description } = this;
+    const gutters = ['CodeMirror-lint-markers'];
+    return html`
+    <div class="cm-wrap">
+      <label for="cm">Description (markdown)</label>
+      <code-mirror
+        id="cm"
+        mode="markdown"
+        .value="${description}"
+        @value-changed="${this[editorValueHandler]}"
+        .gutters="${gutters}"
+        lineNumbers
+      ></code-mirror>
+    </div>`;
+  }
+
+  [projectsTemplate]() {
+    const { compatibility, selectedProjects, projects } = this;
+    const source = this[internals.computeProjectsAutocomplete](projects);
+    return html`
+    <anypoint-chip-input
+      .chipsValue="${selectedProjects}"
+      .source="${source}"
+      @overlay-opened="${stopEvent}"
+      @overlay-closed="${stopEvent}"
+      @chips-changed="${this[projectsHandler]}"
+      ?compatibility="${compatibility}">
+      <label slot="label">Add to project</label>
+    </anypoint-chip-input>`;
+  }
+
+  [actionsTemplate]() {
+    const { isSavedRequest } = this;
+    return html`
+    <anypoint-button
+      @click="${this[cancelHandler]}"
+      data-action="cancel-edit"
+      title="Cancels any changes"
+      aria-label="Activate to cancel editor"
+      ?compatibility="${this.compatibility}">
+      Cancel
+    </anypoint-button>
+    ${isSavedRequest ? this[savedActionsTemplate]() : this[unsavedActionsTemplate]()}
+    `;
+  }
+
+  [savedActionsTemplate]() {
+    const { compatibility } = this;
+    return html`<anypoint-button
+      @click="${this[saveHandler]}"
+      data-action="save-as-new"
+      title="Saves request as new object"
+      aria-label="Activate to save request as new object"
+      ?compatibility="${compatibility}"
+      ?disabled="${this[savingValue]}"
+    >
+      Save as new
+    </anypoint-button>
+    <anypoint-button
+      @click="${this[overrideHandler]}"
+      data-action="override"
+      title="Replaces request data"
+      aria-label="Activate to update the request"
+      ?compatibility="${compatibility}"
+      ?disabled="${this[savingValue]}"
+      emphasis="high"
+    >
+      Update
+    </anypoint-button>`;
+  }
+
+  [unsavedActionsTemplate]() {
+    const { compatibility } = this;
+    return html`<anypoint-button
+      class="action-button"
+      @click="${this[saveHandler]}"
+      data-action="save-request"
+      title="Commits changes and stores request in data store"
+      aria-label="Activate to save the request"
+      ?compatibility="${compatibility}"
+      ?disabled="${this[savingValue]}"
+    >Save</anypoint-button>`;
+  }
+
+  render() {
+    return html`
+    ${this[titleTemplate]()}
+    ${this[addressTemplate]()}
+    <iron-form id="form" @iron-form-presubmit="${this[submitHandler]}">
+      <form method="POST">
+        ${this[nameInputTemplate]()}
+        ${this[projectsTemplate]()}
+        ${this[descriptionTemplate]()}
+      </form>
+    </iron-form>
+    <div class="actions">
+      ${this[actionsTemplate]()}
+    </div>`;
+  }
+}
