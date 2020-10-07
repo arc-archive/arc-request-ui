@@ -1,6 +1,7 @@
 import { TemplateResult, CSSResult, LitElement } from 'lit-element';
 import { ArcResizableMixin } from '@advanced-rest-client/arc-resizable-mixin';
-import { ARCProject, ARCSavedRequest, ARCHistoryRequest , ARCRequestUpdatedEvent } from '@advanced-rest-client/arc-models';
+import { ARCRequestUpdatedEvent } from '@advanced-rest-client/arc-models';
+import { Project, ArcRequest } from '@advanced-rest-client/arc-types';
 import { ARCProjectNames } from './types';
 
 /** @typedef {import('@anypoint-web-components/anypoint-chip').AnypointChip} AnypointChip */
@@ -57,8 +58,8 @@ export declare class RequestMetaDetailsElement {
    * Sets a request object to render without requesting a data from the data store.
    * Useful when dealing with a request that hasn't been stored in the data store.
    */
-  request: ARCSavedRequest|ARCHistoryRequest;
-  [requestValue]: ARCSavedRequest|ARCHistoryRequest;
+  request: ArcRequest.ARCSavedRequest|ArcRequest.ARCHistoryRequest;
+  [requestValue]: ArcRequest.ARCSavedRequest|ArcRequest.ARCHistoryRequest;
 
   /**
    * Tests whether the current request object is stored in the data store
@@ -115,7 +116,7 @@ export declare class RequestMetaDetailsElement {
    * Renders the delete button when the request is already saved,
    * meaning when it has `_id` and `_rev`
    */
-  [deleteButtonTemplate](request: ARCSavedRequest|ARCHistoryRequest): TemplateResult|string;
+  [deleteButtonTemplate](request: ArcRequest.ARCSavedRequest|ArcRequest.ARCHistoryRequest): TemplateResult|string;
 
   [editButtonTemplate](): TemplateResult;
 
@@ -135,7 +136,7 @@ export declare class RequestMetaDetailsElement {
    * @returns Processed response or undefined.
    */
 
-  [processProjectsResponse](data: ARCProject[], keys: string[]): ARCProjectNames[];
+  [processProjectsResponse](data: Project.ARCProject[], keys: string[]): ARCProjectNames[];
 
   /**
    * @returns Template for the description

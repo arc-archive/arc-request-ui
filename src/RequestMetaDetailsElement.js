@@ -36,9 +36,9 @@ import {
   descriptionTemplate,
 } from './internals.js';
 
-/** @typedef {import('@advanced-rest-client/arc-models').ARCProject} ARCProject */
-/** @typedef {import('@advanced-rest-client/arc-models').ARCSavedRequest} ARCSavedRequest */
-/** @typedef {import('@advanced-rest-client/arc-models').ARCHistoryRequest} ARCHistoryRequest */
+/** @typedef {import('@advanced-rest-client/arc-types').Project.ARCProject} ARCProject */
+/** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ARCSavedRequest} ARCSavedRequest */
+/** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ARCHistoryRequest} ARCHistoryRequest */
 /** @typedef {import('@advanced-rest-client/arc-models').ARCRequestUpdatedEvent} ARCRequestUpdatedEvent */
 /** @typedef {import('@anypoint-web-components/anypoint-chip').AnypointChip} AnypointChip */
 /** @typedef {import('lit-html').TemplateResult} TemplateResult */

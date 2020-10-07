@@ -28,7 +28,8 @@ import {
   unsavedActionsTemplate,
   projectsTemplate,
 } from './internals.js';
-import { ARCHistoryRequest, ARCSavedRequest, ARCProjectUpdatedEvent } from '@advanced-rest-client/arc-models';
+import { ARCProjectUpdatedEvent } from '@advanced-rest-client/arc-models';
+import { ArcRequest } from '@advanced-rest-client/arc-types';
 
 /** @typedef {import('@advanced-rest-client/requests-list/src/ProjectsListConsumerMixin').ProjectSelectionInfo} ProjectSelectionInfo */
 /** @typedef {import('@advanced-rest-client/arc-models').ARCSavedRequest} ARCSavedRequest */
@@ -127,7 +128,7 @@ export declare class RequestMetaEditorElement {
   /**
    * Reads project data from the request object
    */
-  [restoreProjects](request: ARCSavedRequest|ARCHistoryRequest): void;
+  [restoreProjects](request: ArcRequest.ARCSavedRequest|ArcRequest.ARCHistoryRequest): void;
 
   [inputHandler](e: CustomEvent): void;
 
