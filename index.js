@@ -1,1 +1,1 @@
-export { ArcRequestUi } from './src/ArcRequestUi.js';
+export { RequestMetaEditorElement } from './src/RequestMetaEditorElement.js';

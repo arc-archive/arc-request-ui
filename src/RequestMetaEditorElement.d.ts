@@ -1,5 +1,3 @@
-/* eslint-disable no-plusplus */
-
 import { TemplateResult, CSSResult } from 'lit-element';
 import {
   ProjectsListConsumerMixin,
@@ -53,7 +51,7 @@ import { ArcRequest } from '@advanced-rest-client/arc-types';
  * If the request has both `_id` and `_rev` properties (PouchDB properties)
  * it renders "saved" view.
  */
-export declare class RequestMetaEditorElement {
+export declare class RequestMetaEditorElement extends ProjectsListConsumerMixin(RequestMetaDetailsElement) {
   
   static readonly styles: CSSResult[];
 

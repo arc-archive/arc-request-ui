@@ -7,6 +7,7 @@ import '@advanced-rest-client/arc-menu/saved-menu.js';
 import '@advanced-rest-client/arc-menu/history-menu.js';
 import '@advanced-rest-client/arc-models/request-model.js';
 import '@advanced-rest-client/arc-models/project-model.js';
+import { MonacoLoader } from '@advanced-rest-client/monaco-support';
 import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
 import { ImportEvents, ArcNavigationEventTypes } from '@advanced-rest-client/arc-events';
 import { ArcModelEvents, ArcModelEventTypes } from '@advanced-rest-client/arc-models';
@@ -19,7 +20,7 @@ import '../request-meta-editor.js';
 class ComponentDemo extends DemoPage {
   constructor() {
     super();
-    this.initObservableProperties(['request', 'requestId', 'requestType', 'useObjects']);
+    this.initObservableProperties(['request', 'requestId', 'requestType', 'useObjects', 'initializing']);
     this.componentName = 'request-meta-editor';
     this.compatibility = false;
     this.useObjects = false;
@@ -27,6 +28,7 @@ class ComponentDemo extends DemoPage {
     this.requestId = undefined;
     this.requestType = undefined;
     this.generator = new DataGenerator();
+    this.initializing = true;
 
     this.generateData = this.generateData.bind(this);
     this.deleteData = this.deleteData.bind(this);
@@ -36,17 +38,30 @@ class ComponentDemo extends DemoPage {
     window.addEventListener(ArcNavigationEventTypes.navigateRequest, this.navigateRequestHandler.bind(this));
     window.addEventListener(ArcNavigationEventTypes.navigateProject, this.navigateProjectHandler.bind(this));
     window.addEventListener(ArcModelEventTypes.Request.State.delete, this.requestDeleteHandler.bind(this));
+
+    this.initMonaco();
+  }
+
+  async initMonaco() {
+    const base = `../node_modules/monaco-editor/`;
+    MonacoLoader.createEnvironment(base);
+    await MonacoLoader.loadMonaco(base);
+    await MonacoLoader.monacoReady();
+    this.initializing = false;
   }
 
   async generateData() {
     await this.generator.insertSavedRequestData({
       requestsSize: 100,
     });
-    ImportEvents.dataimported(document.body);
+    await this.generator.insertHistoryRequestData({
+      requestsSize: 100,
+    });
+    ImportEvents.dataImported(document.body);
   }
 
   async deleteData() {
-    await this.generator.destroySavedRequestData();
+    await this.generator.destroyHistoryData();
     ArcModelEvents.destroyed(document.body, 'all');
   }
 
@@ -117,6 +132,9 @@ class ComponentDemo extends DemoPage {
   }
 
   _demoTemplate() {
+    if (this.initializing) {
+      return html`<p></p>initializing Monaco</p>`;
+    }
     const {
       demoStates,
       darkThemeActive,

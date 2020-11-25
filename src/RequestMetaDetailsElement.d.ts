@@ -4,8 +4,6 @@ import { ARCRequestUpdatedEvent } from '@advanced-rest-client/arc-models';
 import { Project, ArcRequest } from '@advanced-rest-client/arc-types';
 import { ARCProjectNames } from './types';
 
-/** @typedef {import('@anypoint-web-components/anypoint-chip').AnypointChip} AnypointChip */
-
 import {
   requestArcRequestEntity,
   requestIdValue,
@@ -34,7 +32,7 @@ import {
 /**
  * @fires edit An event when requesting to edit current request. The request may not yet be stored in the data store.
  */
-export declare class RequestMetaDetailsElement {
+export declare class RequestMetaDetailsElement extends ArcResizableMixin(LitElement) {
   static readonly styles: CSSResult[];
 
   /**
@@ -147,7 +145,4 @@ export declare class RequestMetaDetailsElement {
    * @returns Template for a time label
    */
   [timeTemplate](label: string, value: number, other?: number): TemplateResult|string;
-}
-
-export declare interface RequestMetaDetailsElement extends ArcResizableMixin, LitElement {
 }

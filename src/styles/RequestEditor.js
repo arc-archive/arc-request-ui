@@ -38,7 +38,18 @@ anypoint-chip-input {
   width: calc(100% - 16px);
 }
 
-.cm-wrap {
-  margin: 16px 8px;
+.monaco-wrap {
+  margin: 0px 8px;
+}
+
+.monaco {
+  height: 200px;
+  width: 100%;
+}
+
+.editor-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 `;

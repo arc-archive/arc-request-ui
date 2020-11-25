@@ -42,11 +42,15 @@ class ComponentDemo extends DemoPage {
     await this.generator.insertSavedRequestData({
       requestsSize: 100,
     });
-    ImportEvents.dataimported(document.body);
+    await this.generator.insertHistoryRequestData({
+      requestsSize: 100,
+    });
+    ImportEvents.dataImported(document.body);
   }
 
   async deleteData() {
     await this.generator.destroySavedRequestData();
+    await this.generator.destroyHistoryData();
     ArcModelEvents.destroyed(document.body, 'all');
   }
 

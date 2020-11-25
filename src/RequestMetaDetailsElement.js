@@ -9,7 +9,7 @@ import '@anypoint-web-components/anypoint-button/anypoint-button.js';
 import '@advanced-rest-client/arc-marked/arc-marked.js';
 import '@anypoint-web-components/anypoint-chip/anypoint-chip.js';
 import { ArcModelEvents, ArcModelEventTypes } from '@advanced-rest-client/arc-models';
-import { ArcNavigationEvents } from '@advanced-rest-client/arc-events';
+import { ArcNavigationEvents, TelemetryEvents } from '@advanced-rest-client/arc-events';
 import elementStyles from './styles/RequestDetail.js';
 import {
   requestArcRequestEntity,
@@ -208,7 +208,7 @@ export class RequestMetaDetailsElement extends ArcResizableMixin(LitElement) {
       this[requestValue] = /** @type ARCSavedRequest|ARCHistoryRequest */ (await ArcModelEvents.Request.read(this, requestType, requestId));
       this[processRequestValue]();
     } catch (e) {
-      // ...
+      TelemetryEvents.exception(this, e.message, false);
     }
     this[loadingValue] = false;
   }
@@ -255,12 +255,18 @@ export class RequestMetaDetailsElement extends ArcResizableMixin(LitElement) {
   /**
    * Dispatches an event to the data store to remove the element.
    */
-  [deleteHandler]() {
+  async [deleteHandler]() {
     const { requestId, requestType } = this;
     if (!requestId || !requestType) {
       return;
     }
-    ArcModelEvents.Request.delete(this, requestType, requestId);
+    try {
+      ArcModelEvents.Request.delete(this, requestType, requestId);
+    } catch (e) {
+      TelemetryEvents.exception(this, e.message, false);
+      // eslint-disable-next-line no-console
+      console.error(e);
+    }
   }
 
   /**

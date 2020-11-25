@@ -1,3 +1,4 @@
+/* eslint-disable class-methods-use-this */
 /* eslint-disable no-plusplus */
 
 import { html } from 'lit-element';
@@ -5,8 +6,8 @@ import '@anypoint-web-components/anypoint-input/anypoint-input.js';
 import '@anypoint-web-components/anypoint-button/anypoint-button.js';
 import '@anypoint-web-components/anypoint-chip-input/anypoint-chip-input.js';
 import '@polymer/iron-form/iron-form.js';
-import '@advanced-rest-client/code-mirror/code-mirror.js';
 import { ArcModelEvents } from '@advanced-rest-client/arc-models';
+import { MonacoTheme, MonacoStyles } from '@advanced-rest-client/monaco-support';
 import {
   ProjectsListConsumerMixin,
   internals,
@@ -30,7 +31,6 @@ import {
   projectsHandler,
   cancelHandler,
   saveHandler,
-  editorValueHandler,
   descriptionTemplate,
   actionsTemplate,
   savedActionsTemplate,
@@ -44,6 +44,9 @@ import {
 /** @typedef {import('@advanced-rest-client/arc-types').Project.ARCProject} ARCProject */
 /** @typedef {import('@advanced-rest-client/arc-models').ARCProjectUpdatedEvent} ARCProjectUpdatedEvent */
 /** @typedef {import('lit-element').CSSResult} CSSResult */
+/** @typedef {import('monaco-editor').editor.IStandaloneEditorConstructionOptions} IStandaloneEditorConstructionOptions */
+
+/* global  monaco */
 
 /**
  * Cancels an event
@@ -52,6 +55,10 @@ import {
 function stopEvent(e) {
   e.stopPropagation();
 }
+
+export const generateEditorConfig = Symbol('generateEditorConfig');
+export const monacoValueChanged = Symbol('monacoValueChanged');
+export const monacoInstance = Symbol('monacoInstance');
 
 /**
  * A dialog to edit request meta data.
@@ -79,6 +86,7 @@ export class RequestMetaEditorElement extends ProjectsListConsumerMixin(RequestM
     return [
       ...(/** @type CSSResult[] */ (RequestMetaDetailsElement.styles)),
       styles,
+      MonacoStyles,
     ];
   }
 
@@ -134,6 +142,7 @@ export class RequestMetaEditorElement extends ProjectsListConsumerMixin(RequestM
   constructor() {
     super();
     this.outlined = false;
+    this[monacoValueChanged] = this[monacoValueChanged].bind(this);
   }
 
   /**
@@ -144,6 +153,13 @@ export class RequestMetaEditorElement extends ProjectsListConsumerMixin(RequestM
     this[requestChanged]();
   }
 
+  firstUpdated() {
+    const config = this[generateEditorConfig]();
+    const instance = monaco.editor.create(this.shadowRoot.querySelector('.monaco'), config);
+    instance.onDidChangeModelContent(this[monacoValueChanged]);
+    this[monacoInstance] = instance;
+  }
+
   /**
    * Resets the state of the UI
    */
@@ -151,6 +167,26 @@ export class RequestMetaEditorElement extends ProjectsListConsumerMixin(RequestM
     this.name = '';
     this.description = '';
     this.selectedProjects = [];
+  }
+
+  [generateEditorConfig]() {
+    let config = /** IStandaloneEditorConstructionOptions */ ({
+      minimap: {
+        enabled: false,
+      },
+      formatOnType: true,
+      folding: true,
+      tabSize: 2,
+      detectIndentation: true,
+      value: this.description,
+    });
+    config = MonacoTheme.assignTheme(monaco, config);
+    config.language = 'markdown';
+    return config;
+  }
+
+  [monacoValueChanged]() {
+    this.description =  this[monacoInstance].getValue();
   }
 
   /**
@@ -235,6 +271,9 @@ export class RequestMetaEditorElement extends ProjectsListConsumerMixin(RequestM
     this.name = typed.name || '';
     this.description = typed.description || '';
     this[restoreProjects](typed);
+    if (this[monacoInstance]) {
+      this[monacoInstance].setValue(this.description);
+    }
   }
 
   /**
@@ -279,19 +318,6 @@ export class RequestMetaEditorElement extends ProjectsListConsumerMixin(RequestM
     this.selectedProjects = e.detail.value;
   }
 
-  [editorValueHandler](e) {
-    this.description = e.detail.value;
-  }
-
-  notifyResize() {
-    super.notifyResize();
-    const cm = this.shadowRoot.querySelector('#cm');
-    if (cm) {
-      // @ts-ignore
-      cm.refresh();
-    }
-  }
-
   [titleTemplate]() {
     const { isHistory, isStored } = this;
     const isSaved = !isHistory;
@@ -323,19 +349,10 @@ export class RequestMetaEditorElement extends ProjectsListConsumerMixin(RequestM
   }
 
   [descriptionTemplate]() {
-    const { description } = this;
-    const gutters = ['CodeMirror-lint-markers'];
     return html`
-    <div class="cm-wrap">
-      <label for="cm">Description (markdown)</label>
-      <code-mirror
-        id="cm"
-        mode="markdown"
-        .value="${description}"
-        @value-changed="${this[editorValueHandler]}"
-        .gutters="${gutters}"
-        lineNumbers
-      ></code-mirror>
+    <div class="monaco-wrap">
+      <label>Description (markdown)</label>
+      <div class="monaco"></div>
     </div>`;
   }
 
@@ -346,8 +363,8 @@ export class RequestMetaEditorElement extends ProjectsListConsumerMixin(RequestM
     <anypoint-chip-input
       .chipsValue="${selectedProjects}"
       .source="${source}"
-      @overlay-opened="${stopEvent}"
-      @overlay-closed="${stopEvent}"
+      @opened="${stopEvent}"
+      @closed="${stopEvent}"
       @chips-changed="${this[projectsHandler]}"
       ?compatibility="${compatibility}">
       <label slot="label">Add to project</label>
