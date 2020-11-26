@@ -13,7 +13,7 @@ import {
   internals,
 } from '@advanced-rest-client/requests-list';
 import { RequestMetaDetailsElement } from './RequestMetaDetailsElement.js';
-import styles from './styles/RequestEditor.js';
+import styles from './styles/RequestMetaEditor.js';
 import {
   requestValue,
   requestChanged,

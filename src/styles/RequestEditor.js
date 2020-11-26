@@ -2,54 +2,111 @@ import { css } from 'lit-element';
 
 export default css`
 :host {
-  --code-mirror-height: var(--saved-request-editor-cm-height, 200px);
+  display: block;
+  --method-label-default-color: rgb(128, 128, 128);
 }
 
-form {
-  outline: none;
+[hidden] {
+  display: none !important;
 }
 
-.caption {
+.url-meta {
   display: flex;
-  flex-direction: row;
   align-items: center;
+  padding: 12px 24px;
+  background-color: #f6f6f6;
+}
+
+url-input-editor {
+  flex: 1;
+  margin: 0 8px;
+  background-color: rgb(255, 255, 255);
+  border-radius: 20px;
+  --url-input-editor-border-color: transparent;
+}
+
+.http-label {
+  display: block;
+  width: 24px;
+  height: 24px;
+  background-color: var(--http-method-label-color, var(--method-label-default-color));
+  border-radius: 50%;
+}
+
+.http-label[data-method="get"] {
+  background-color: var(--http-method-label-get-color, rgb(0, 128, 0));
+}
+
+.http-label[data-method='post'] {
+  background-color: var(--http-method-label-post-color, rgb(33, 150, 243));
+}
+
+.http-label[data-method='put'] {
+  background-color: var(--http-method-label-put-color, rgb(255, 165, 0));
+}
+
+.http-label[data-method='delete'] {
+  background-color: var(--http-method-label-delete-color, rgb(244, 67, 54));
+}
+
+.http-label[data-method='patch'] {
+  background-color: var(--http-method-label-patch-color, rgb(156, 39, 176));
+}
+
+.http-label[data-method='options'] {
+  background-color: var(--http-method-label-options-color, var(--method-label-default-color));
+}
+
+.http-label[data-method='head'] {
+  background-color: var(--http-method-label-head-color, var(--method-label-default-color));
+}
+
+.http-label[data-method='trace'] {
+  background-color: var(--http-method-label-trace-color, var(--method-label-default-color));
+}
+
+.http-label[data-method='connect'] {
+  background-color: var(--http-method-label-connect-color, var(--method-label-default-color));
+}
+
+.method-list {
+  border-radius: 12px;
+  box-shadow: var(--anypoint-dropdown-shadow);
+}
+
+.method-selector {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
   cursor: pointer;
 }
 
-.caption-icon {
-  color: var(--saved-request-editor-caption-icon-color, rgba(0, 0, 0, 0.74));
-  transform: rotate(0deg);
-  transition: 0.31s transform ease-in-out;
+.method-selector arc-icon {
+  margin-left: 12px;
 }
 
-[data-caption-opened] .caption-icon {
-  transform: rotate(-180deg);
+.method-selector .label {
+  display: block;
+  font-size: var(--method-selector-label-size, 1.4rem);
+  font-weight: 300;
+  flex: 1;
 }
 
-.icon {
-  display: inline-block;
-  width: 24px;
-  height: 24px;
-  fill: currentColor;
+.separator {
+  height: 1px;
+  background-color: #e5e5e5;
+  margin: 8px 0;
 }
 
-anypoint-input,
-anypoint-chip-input {
-  width: calc(100% - 16px);
+.request-menu {
+  --anypoint-menu-button-border-radius: 12px;
 }
 
-.monaco-wrap {
-  margin: 0px 8px;
+.editor-tabs {
+  border-bottom: 1px #e5e5e5 solid;
 }
 
-.monaco {
-  height: 200px;
-  width: 100%;
-}
-
-.editor-content {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
+/* headers-editor {
+  min-height: 200px;
+} */
 `;
