@@ -12,11 +12,15 @@ import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
 import { ImportEvents, ArcNavigationEventTypes } from '@advanced-rest-client/arc-events';
 import { ArcModelEvents } from '@advanced-rest-client/arc-models';
 import { MonacoLoader } from '@advanced-rest-client/monaco-support';
+import { v4 } from '@advanced-rest-client/uuid-generator';
 import '../arc-request-editor.js';
 
 /** @typedef {import('@advanced-rest-client/arc-events').ARCRequestNavigationEvent} ARCRequestNavigationEvent */
 /** @typedef {import('@advanced-rest-client/arc-events').ARCProjectNavigationEvent} ARCProjectNavigationEvent */
 /** @typedef {import('@advanced-rest-client/arc-models').ARCRequestDeletedEvent} ARCRequestDeletedEvent */
+/** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ArcEditorRequest} ArcEditorRequest */
+
+const REQUEST_STORE_KEY = 'demo.are-request-ui.editorRequest';
 
 class ComponentDemo extends DemoPage {
   constructor() {
@@ -26,7 +30,13 @@ class ComponentDemo extends DemoPage {
     this.compatibility = false;
     this.withMenu = false;
     this.initialized = false;
-    this.request = undefined;
+    /** 
+     * @type {ArcEditorRequest}
+     */
+    this.request = {
+      id: undefined,
+      request: undefined,
+    };
     this.requestId = undefined;
     this.requestType = undefined;
     this.generator = new DataGenerator();
@@ -37,6 +47,7 @@ class ComponentDemo extends DemoPage {
     window.addEventListener(ArcNavigationEventTypes.navigateRequest, this.navigateRequestHandler.bind(this));
     
     this.initEditors();
+    this.restoreRequest();
   }
 
   async initEditors() {
@@ -85,10 +96,37 @@ class ComponentDemo extends DemoPage {
    * @param {string} type The request type
    */
   async setRequest(id, type) {
-    this.request = undefined;
+    // this.request = undefined;
     this.requestId = id;
     this.requestType = type;
-    this.request = await ArcModelEvents.Request.read(document.body, type, id);
+    const request = await ArcModelEvents.Request.read(document.body, type, id);
+    this.request = {
+      id: v4(),
+      request,
+    };
+  }
+
+  restoreRequest() {
+    const data = localStorage.getItem(REQUEST_STORE_KEY);
+    if (!data) {
+      return;
+    }
+    try {
+      const tmp = JSON.parse(data);
+      if (tmp.id && tmp.request) {
+        this.request = /** @type ArcEditorRequest */ (tmp);
+      }
+    } catch (e) {
+      // 
+    }
+  }
+
+  _requestChangeHandler() {
+    const editor = document.querySelector('arc-request-editor');
+    const object = editor.serialize();
+    console.log(object);
+
+    localStorage.setItem(REQUEST_STORE_KEY, JSON.stringify(object));
   }
 
   _demoTemplate() {
@@ -100,10 +138,12 @@ class ComponentDemo extends DemoPage {
       darkThemeActive,
       compatibility,
       request,
-      requestId,
-      requestType,
       withMenu,
     } = this;
+
+    const { id, request: baseRequest } = request;
+    const { method, ui, url, actions, payload, authorization, config, headers } = (baseRequest || {});
+
     return html`
       <section class="documentation-section">
         <h3>Interactive demo</h3>
@@ -124,6 +164,17 @@ class ComponentDemo extends DemoPage {
             
             <arc-request-editor
               ?compatibility="${compatibility}"
+              .requestId="${id}"
+              .url="${url}"
+              .method="${method}"
+              .headers="${headers}"
+              .responseActions="${actions && actions.response}"
+              .requestActions="${actions && actions.request}"
+              .payload="${payload}"
+              .authorization="${authorization}"
+              .uiConfig="${ui}"
+              .config="${config}"
+              @change="${this._requestChangeHandler}"
             ></arc-request-editor>
           </div>
 

@@ -106,7 +106,15 @@ url-input-editor {
   border-bottom: 1px #e5e5e5 solid;
 }
 
-/* headers-editor {
-  min-height: 200px;
-} */
+.tab-counter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 50%;
+  background-color: var(--accent-color);
+  color: #fff;
+  width: 20px;
+  height: 20px;
+  font-size: 0.85rem;
+}
 `;

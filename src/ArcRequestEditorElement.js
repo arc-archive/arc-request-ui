@@ -14,16 +14,29 @@ import '@anypoint-web-components/anypoint-tabs/anypoint-tabs.js';
 import '@anypoint-web-components/anypoint-tabs/anypoint-tab.js';
 import '@advanced-rest-client/arc-headers/headers-editor.js';
 import '@advanced-rest-client/body-editor/body-editor.js';
+import '@advanced-rest-client/arc-actions/arc-actions.js';
+import '@advanced-rest-client/http-code-snippets/http-code-snippets.js';
 import elementStyles from './styles/RequestEditor.js';
 import requestMenuTemplate from './templates/RequestMenu.template.js';
+import authorizationTemplates from './templates/RequestAuth.template.js';
+import '../arc-request-config.js';
 
 /** @typedef {import('@advanced-rest-client/arc-types').Actions.RunnableAction} RunnableAction */
 /** @typedef {import('lit-element').TemplateResult} TemplateResult */
 /** @typedef {import('@anypoint-web-components/anypoint-listbox').AnypointListbox} AnypointListbox */
-/** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.HeadersMeta} HeadersMeta */
+/** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.RequestAuthorization} RequestAuthorization */
+/** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.RequestUiMeta} RequestUiMeta */
+/** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ArcEditorRequest} ArcEditorRequest */
+/** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ArcBaseRequest} ArcBaseRequest */
+/** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.RequestConfig} RequestConfig */
 /** @typedef {import('@advanced-rest-client/arc-types').RequestBody.BodyMeta} BodyMeta */
 /** @typedef {import('@advanced-rest-client/arc-headers').HeadersEditorElement} HeadersEditorElement */
 /** @typedef {import('@advanced-rest-client/body-editor').BodyEditorElement} BodyEditorElement */
+/** @typedef {import('@advanced-rest-client/authorization-selector').AuthorizationSelectorElement} AuthorizationSelectorElement */
+/** @typedef {import('@advanced-rest-client/authorization-method').AuthorizationMethod} AuthorizationMethod */
+/** @typedef {import('@advanced-rest-client/arc-actions').ARCActionsElement} ARCActionsElement */
+/** @typedef {import('@advanced-rest-client/arc-url').UrlInputEditorElement} UrlInputEditorElement */
+/** @typedef {import('../index').ArcRequestConfigElement} ArcRequestConfigElement */
 
 export const urlMetaTemplate = Symbol('urlMetaTemplate');
 export const httpMethodSelectorTemplate = Symbol('httpMethodSelectorTemplate');
@@ -44,10 +57,16 @@ export const headersTemplate = Symbol('headersTemplate');
 export const bodyTemplate = Symbol('bodyTemplate');
 export const authorizationTemplate = Symbol('authorizationTemplate');
 export const actionsTemplate = Symbol('actionsTemplate');
+export const actionsUiHandler = Symbol('actionsUiHandler');
+export const actionsHandler = Symbol('actionsHandler');
 export const configTemplate = Symbol('configTemplate');
 export const snippetsTemplate = Symbol('snippetsTemplate');
 export const headersHandler = Symbol('headersHandler');
 export const bodyHandler = Symbol('bodyHandler');
+export const authorizationHandler = Symbol('authorizationHandler');
+export const configHandler = Symbol('configHandler');
+export const headersValue = Symbol('headersValue');
+export const uiConfigValue = Symbol('uiConfigValue');
 
 export const HttpMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'CONNECT', 'OPTIONS', 'TRACE'];
 export const NonPayloadMethods = ['GET', 'HEAD'];
@@ -68,10 +87,6 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
        */
       headers: { type: String },
       /** 
-       * The meta data association with the headers editor.
-       */
-      headersMeta: { type: Object },
-      /** 
        * The Current content type value.
        */
       contentType: { type: String },
@@ -79,10 +94,6 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
        * Body for the request.
        */
       payload: { type: String },
-      /** 
-       * The meta data association with the payload editor.
-       */
-      payloadMeta: { type: Object },
       /**
        * Current request URL
        */
@@ -146,6 +157,19 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
        * @default 0
        */
       selectedTab: { type: Number },
+      /** 
+       * The authorization configuration for the current request.
+       * May be null.
+       */
+      authorization: { type: Array },
+      /** 
+       * The editors configuration meta data
+       */
+      uiConfig: { type: Object },
+      /** 
+       * The request configuration that overrides application and workspace configuration.
+       */
+      config: { type: Object },
     };
   }
 
@@ -154,6 +178,71 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
    */
   get isPayload() {
     return !NonPayloadMethods.includes(this.method);
+  }
+
+  /**
+   * @returns {number} The number of currently enabled authorization methods.
+   */
+  get enabledAuthLength() {
+    const { authorization=[] } = this;
+    let cnt = 0;
+    authorization.forEach((method) => {
+      if (method.enabled) {
+        cnt += 1;
+      }
+    });
+    return cnt;
+  }
+
+  /**
+   * @returns {number} The number of configured actions.
+   */
+  get actionsLength() {
+    const { requestActions, responseActions } = this;
+    let result = 0;
+    if (Array.isArray(requestActions)) {
+      result += requestActions.length;
+    }
+    if (Array.isArray(responseActions)) {
+      result += responseActions.length;
+    }
+    return result;
+  }
+
+  get headers() {
+    return this[headersValue];
+  }
+
+  set headers(value) {
+    const old = this[headersValue];
+    if (old === value) {
+      return;
+    }
+    this[headersValue] = value;
+    this.contentType = HeadersParser.contentType(value);
+    this.requestUpdate();
+  }
+
+  /**
+   * @returns {RequestUiMeta}
+   */
+  get uiConfig() {
+    return this[uiConfigValue];
+  }
+
+  /**
+   * @param {RequestUiMeta} value
+   */
+  set uiConfig(value) {
+    const old = this[uiConfigValue];
+    if (old === value) {
+      return;
+    }
+    this[uiConfigValue] = value;
+    this.requestUpdate();
+    if (value && typeof value.selectedEditor === 'number') {
+      this.selectedTab = value.selectedEditor;
+    }
   }
 
   constructor() {
@@ -176,7 +265,7 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
      */
     this.method = 'GET';
     /**
-     * @type {string | FormData | File | Blob}
+     * @type {string | FormData | File | Blob | ArrayBuffer | Buffer}
      */
     this.payload = '';
     /**
@@ -212,13 +301,44 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
      */
     this.oauth2AccessTokenUri = undefined;
     /**
-     * @type {HeadersMeta}
+     * @type {RequestAuthorization[]}
      */
-    this.headersMeta = undefined;
+    this.authorization = undefined;
     /**
-     * @type {BodyMeta}
+     * @type {RequestUiMeta}
      */
-    this.payloadMeta = undefined;
+    this.uiConfig = undefined;
+    /**
+     * @type {RequestConfig}
+     */
+    this.config = undefined;
+  }
+
+  /**
+   * Serializes the request to the EditorRequest object with the `ArcBaseRequest` request on it.
+   * @returns {ArcEditorRequest}
+   */
+  serialize() {
+    const { requestId, url, method, headers, payload, requestActions, responseActions, authorization, uiConfig, config, } = this;
+    const request = /** @type ArcBaseRequest */ ({
+      url,
+      method, 
+      headers, 
+      payload,
+      actions: {
+        request: requestActions,
+        response: responseActions,
+      },
+      authorization,
+      ui: uiConfig,
+      config,
+    });
+    const result = /** @type ArcEditorRequest */ ({
+      id: requestId,
+      request,
+    });
+
+    return result;
   }
 
   /**
@@ -260,7 +380,11 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
    * @param {Event} e 
    */
   [urlHandler](e) {
-    this.url = e.target.value;
+    const panel = /** @type UrlInputEditorElement */ (e.target);
+    const { value } = panel;
+    this.url = value;
+    this.notifyRequestChanged();
+    this.notifyChanged('url', value);
   }
 
   [requestMenuHandler](e) {
@@ -277,6 +401,8 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
       case 'details':
       case 'close':
       case 'duplicate':
+        this.dispatchEvent(new CustomEvent(action));
+        break;
       default: 
         // eslint-disable-next-line no-console
         console.error('Implement me')
@@ -287,6 +413,12 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
     this.selectedTab = e.detail.value;
     this[informPanelState]();
     this.refreshEditors();
+    if (!this.uiConfig) {
+      this.uiConfig = {};
+    }
+    this.uiConfig.selectedEditor = this.selectedTab;
+    this.notifyRequestChanged();
+    this.notifyChanged('uiConfig', this.uiConfig);
   }
 
   /**
@@ -323,12 +455,15 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
   [headersHandler](e) {
     const node = /** @type HeadersEditorElement */ (e.target);
     const { value, model, source } = node;
-    this.headers = value;
-    if (!this.headersMeta) {
-      this.headersMeta = {};
+    this[headersValue] = value;
+    if (!this.uiConfig) {
+      this.uiConfig = {};
     }
-    this.headersMeta.model = model;
-    this.headersMeta.source = source;
+    if (!this.uiConfig.headers) {
+      this.uiConfig.headers = {};
+    }
+    this.uiConfig.headers.model = model;
+    this.uiConfig.headers.source = source;
     this.contentType = HeadersParser.contentType(value);
     this.notifyRequestChanged();
     this.notifyChanged('headers', value);
@@ -342,13 +477,100 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
     const node = /** @type BodyEditorElement */ (e.target);
     const { value, model, selected } = node;
     this.payload = value;
-    if (!this.payloadMeta) {
-      this.payloadMeta = {};
+    if (!this.uiConfig) {
+      this.uiConfig = {};
     }
-    this.payloadMeta.model = model;
-    this.payloadMeta.selected = selected;
+    if (!this.uiConfig.body) {
+      this.uiConfig.body = {};
+    }
+    this.uiConfig.body.model = model;
+    this.uiConfig.body.selected = selected;
     this.notifyRequestChanged();
     this.notifyChanged('payload', value);
+  }
+
+  /**
+   * The handler for the authorization editor change event
+   * @param {Event} e
+   */
+  [authorizationHandler](e) {
+    const selector = /** @type AuthorizationSelectorElement */ (e.target);
+    const { selected, type } = selector;
+    const methods = /** @type AuthorizationMethod[] */ (selector.items);
+    const result = /** @type RequestAuthorization[] */ ([]);
+    methods.forEach((authMethod) => {
+      const { type: mType } = authMethod;
+      const config = (authMethod && authMethod.serialize) ? authMethod.serialize() : undefined;
+      const enabled = type.includes(mType);
+      result.push({
+        config,
+        type: mType,
+        enabled,
+      });
+    });
+    this.authorization = result;
+    if (!this.uiConfig) {
+      this.uiConfig = {};
+    }
+    if (!this.uiConfig.authorization) {
+      this.uiConfig.authorization = {};
+    }
+    this.uiConfig.authorization.selected = /** @type number */ (selected);
+    this.notifyRequestChanged();
+    this.notifyChanged('authorization', result);
+    this.requestUpdate();
+  }
+
+  /**
+   * The handler for the actions editor change event
+   * @param {CustomEvent} e
+   */
+  [actionsHandler](e) {
+    const panel = /** @type ARCActionsElement */ (e.target);
+    const { type } = e.detail;
+    const list = type === 'request' ? panel.request : panel.response;
+    const prop = type === 'request' ? 'requestActions' : 'responseActions';
+    this[prop] = /** @type RunnableAction[] */ (list);
+    const { selected } = panel;
+    if (!this.uiConfig) {
+      this.uiConfig = {};
+    }
+    if (!this.uiConfig.actions) {
+      this.uiConfig.actions = {};
+    }
+    this.uiConfig.actions.selected = selected;
+    this.notifyRequestChanged();
+    this.notifyChanged(prop, list);
+    this.requestUpdate();
+  }
+
+  /**
+   * The handler for the actions editor UI state change event
+   * @param {Event} e
+   */
+  [actionsUiHandler](e) {
+    const panel = /** @type ARCActionsElement */ (e.target);
+    const { selected } = panel;
+    if (!this.uiConfig) {
+      this.uiConfig = {};
+    }
+    if (!this.uiConfig.actions) {
+      this.uiConfig.actions = {};
+    }
+    this.uiConfig.actions.selected = selected;
+    this.notifyRequestChanged();
+    this.notifyChanged('uiConfig', this.uiConfig);
+  }
+
+  /**
+   * The handler for the config editor change event
+   * @param {Event} e
+   */
+  [configHandler](e) {
+    const node = /** @type ArcRequestConfigElement */ (e.target);
+    this.config = node.config;
+    this.notifyRequestChanged();
+    this.notifyChanged('config', this.config);
   }
 
   /**
@@ -469,6 +691,8 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
       isPayload,
       compatibility,
       selectedTab,
+      enabledAuthLength,
+      actionsLength,
     } = this;
     return html`
     <anypoint-tabs
@@ -479,8 +703,8 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
     >
       <anypoint-tab ?compatibility="${compatibility}">Headers</anypoint-tab>
       <anypoint-tab ?compatibility="${compatibility}" ?hidden="${!isPayload}">Body</anypoint-tab>
-      <anypoint-tab ?compatibility="${compatibility}">Authorization</anypoint-tab>
-      <anypoint-tab ?compatibility="${compatibility}">Actions</anypoint-tab>
+      <anypoint-tab ?compatibility="${compatibility}">Authorization <span class="tab-counter">${enabledAuthLength}</span></anypoint-tab>
+      <anypoint-tab ?compatibility="${compatibility}">Actions <span class="tab-counter">${actionsLength}</span></anypoint-tab>
       <anypoint-tab ?compatibility="${compatibility}">Config</anypoint-tab>
       <anypoint-tab ?compatibility="${compatibility}">Code snippets</anypoint-tab>
     </anypoint-tabs>`;
@@ -502,6 +726,10 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
     <div class="panel">
     ${this[headersTemplate](headersVisible)}
     ${this[bodyTemplate](bodyVisible)}
+    ${this[authorizationTemplate](authVisible)}
+    ${this[actionsTemplate](actionsVisible)}
+    ${this[configTemplate](configVisible)}
+    ${this[snippetsTemplate](codeVisible)}
     </div>
     `;
   }
@@ -553,6 +781,84 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
       @change="${this[bodyHandler]}"
       @selected="${this[bodyHandler]}"
     ></body-editor>
+    `;
+  }
+
+  /**
+   * @param {boolean} visible Whether the panel should not be hidden
+   * @returns {TemplateResult} The template for the authorization editor
+   */
+  [authorizationTemplate](visible) {
+    const { oauth2RedirectUri, outlined, compatibility, authorization, uiConfig={} } = this;
+    const { authorization: authUi={} } = uiConfig;
+    const config = {
+      oauth2RedirectUri,
+      outlined, 
+      compatibility,
+      ui: authUi,
+      hidden: !visible,
+    };
+    return authorizationTemplates(this[authorizationHandler], config, authorization);
+  }
+
+  /**
+   * @param {boolean} visible Whether the panel should be rendered
+   * @returns {TemplateResult|string} The template for the ARC request actions editor
+   */
+  [actionsTemplate](visible) {
+    if (!visible) {
+      return '';
+    }
+    const { requestActions, responseActions, outlined, compatibility } = this;
+    return html`
+    <arc-actions
+      .request="${requestActions}"
+      .response="${responseActions}"
+      ?compatibility="${compatibility}"
+      ?outlined="${outlined}"
+      slot="content"
+      @change="${this[actionsHandler]}"
+      @selectedchange="${this[actionsUiHandler]}"
+    ></arc-actions>
+    `;
+  }
+
+  /**
+   * @param {boolean} visible Whether the panel should be rendered
+   * @returns {TemplateResult|string} The template for the ARC request config editor
+   */
+  [configTemplate](visible) {
+    if (!visible) {
+      return '';
+    }
+    const { config, outlined, compatibility, readOnly } = this;
+    return html`
+    <arc-request-config 
+      .config="${config}"
+      ?outlined="${outlined}"
+      ?compatibility="${compatibility}"
+      ?readOnly="${readOnly}"
+      @change="${this[configHandler]}"
+    ></arc-request-config>`;
+  }
+
+  /**
+   * @param {boolean} visible Whether the panel should be rendered
+   * @returns {TemplateResult|string} The template for the Code snippets
+   */
+  [snippetsTemplate](visible) {
+    if (!visible) {
+      return '';
+    }
+    const { url, method, headers, payload } = this;
+    return html`
+    <http-code-snippets
+      scrollable
+      .url="${url}"
+      .method="${method}"
+      .headers="${headers}"
+      .payload="${payload}"
+    ></http-code-snippets>
     `;
   }
 }
