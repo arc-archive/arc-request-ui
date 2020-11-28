@@ -27,6 +27,11 @@ class ComponentDemo extends DemoPage {
     this.requestId = undefined;
     this.requestType = undefined;
     this.generator = new DataGenerator();
+    this.renderViewControls = true;
+
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      this.darkThemeActive = true;
+    }
 
     this.generateData = this.generateData.bind(this);
     this.deleteData = this.deleteData.bind(this);

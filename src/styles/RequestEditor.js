@@ -14,13 +14,13 @@ export default css`
   display: flex;
   align-items: center;
   padding: 12px 24px;
-  background-color: #f6f6f6;
+  background-color: var(--request-editor-url-area-background-color, #f6f6f6);
 }
 
 url-input-editor {
   flex: 1;
   margin: 0 8px;
-  background-color: rgb(255, 255, 255);
+  background-color: var(--request-editor-url-input-background-color, rgb(255, 255, 255));
   border-radius: 20px;
   --url-input-editor-border-color: transparent;
 }
@@ -94,7 +94,7 @@ url-input-editor {
 
 .separator {
   height: 1px;
-  background-color: #e5e5e5;
+  background-color: var(--menu-item-divider-color, #e5e5e5);
   margin: 8px 0;
 }
 
