@@ -4,32 +4,35 @@ import { EventsTargetMixin } from '@advanced-rest-client/events-target-mixin';
 import { v4 } from '@advanced-rest-client/uuid-generator';
 import { ArcResizableMixin } from '@advanced-rest-client/arc-resizable-mixin';
 import { HeadersParser } from '@advanced-rest-client/arc-headers';
+import { TransportEvents, TelemetryEvents, RequestEventTypes } from '@advanced-rest-client/arc-events';
 import '@anypoint-web-components/anypoint-dropdown/anypoint-dropdown.js';
 import '@anypoint-web-components/anypoint-listbox/anypoint-listbox.js';
 import '@anypoint-web-components/anypoint-item/anypoint-icon-item.js';
 import '@advanced-rest-client/arc-url/url-input-editor.js';
 import '@advanced-rest-client/arc-icons/arc-icon.js';
-import '@anypoint-web-components/anypoint-menu-button/anypoint-menu-button.js';
 import '@anypoint-web-components/anypoint-tabs/anypoint-tabs.js';
 import '@anypoint-web-components/anypoint-tabs/anypoint-tab.js';
 import '@advanced-rest-client/arc-headers/headers-editor.js';
 import '@advanced-rest-client/body-editor/body-editor.js';
 import '@advanced-rest-client/arc-actions/arc-actions.js';
 import '@advanced-rest-client/http-code-snippets/http-code-snippets.js';
+import '@anypoint-web-components/anypoint-dialog/anypoint-dialog.js';
+import '@anypoint-web-components/anypoint-button/anypoint-button.js';
 import elementStyles from './styles/RequestEditor.js';
 import requestMenuTemplate from './templates/RequestMenu.template.js';
 import authorizationTemplates from './templates/RequestAuth.template.js';
 import '../arc-request-config.js';
 
-/** @typedef {import('@advanced-rest-client/arc-types').Actions.RunnableAction} RunnableAction */
 /** @typedef {import('lit-element').TemplateResult} TemplateResult */
 /** @typedef {import('@anypoint-web-components/anypoint-listbox').AnypointListbox} AnypointListbox */
+/** @typedef {import('@advanced-rest-client/arc-types').Actions.RunnableAction} RunnableAction */
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.RequestAuthorization} RequestAuthorization */
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.RequestUiMeta} RequestUiMeta */
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ArcEditorRequest} ArcEditorRequest */
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ArcBaseRequest} ArcBaseRequest */
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.RequestConfig} RequestConfig */
 /** @typedef {import('@advanced-rest-client/arc-types').RequestBody.BodyMeta} BodyMeta */
+/** @typedef {import('@advanced-rest-client/arc-types').Authorization.OAuth2Authorization} OAuth2Authorization */
 /** @typedef {import('@advanced-rest-client/arc-headers').HeadersEditorElement} HeadersEditorElement */
 /** @typedef {import('@advanced-rest-client/body-editor').BodyEditorElement} BodyEditorElement */
 /** @typedef {import('@advanced-rest-client/authorization-selector').AuthorizationSelectorElement} AuthorizationSelectorElement */
@@ -67,6 +70,12 @@ export const authorizationHandler = Symbol('authorizationHandler');
 export const configHandler = Symbol('configHandler');
 export const headersValue = Symbol('headersValue');
 export const uiConfigValue = Symbol('uiConfigValue');
+export const readHeaders = Symbol('readHeaders');
+export const awaitingOAuth2authorization = Symbol('awaitingOAuth2authorization');
+export const headersDialogTemplate = Symbol('headersDialogTemplate');
+export const contentWarningCloseHandler = Symbol('contentWarningCloseHandler');
+export const sendIgnoreValidation = Symbol('sendIgnoreValidation');
+export const internalSendHandler = Symbol('internalSendHandler');
 
 export const HttpMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'CONNECT', 'OPTIONS', 'TRACE'];
 export const NonPayloadMethods = ['GET', 'HEAD'];
@@ -127,7 +136,7 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
        * 
        * The `requestId` property is regenerated each time the `reset()` function is called.
        */
-      requestId: { type: String },
+      requestId: { type: String, reflect: true },
       /**
        * When set the editor is in read only mode.
        */
@@ -170,6 +179,15 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
        * The request configuration that overrides application and workspace configuration.
        */
       config: { type: Object },
+      /**
+       * When set it ignores all `content-*` headers when the request method is `GET`.
+       * When not set or `false` it renders a warning message.
+       */
+      ignoreContentOnGet: { type: Boolean },
+      /** 
+       * When set the `content-` headers warning dialog is rendered.
+       */
+      contentHeadersDialogOpened: { type: Boolean },
     };
   }
 
@@ -250,6 +268,23 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
     this.reset();
     this.selectedTab = 0;
     this[methodSelectorOpened] = false;
+    this[internalSendHandler] = this[internalSendHandler].bind(this);
+  }
+
+  /**
+   * @param {EventTarget} node
+   */
+  _attachListeners(node) {
+    super._attachListeners(node);
+    node.addEventListener(RequestEventTypes.send, this[internalSendHandler]);
+  }
+
+  /**
+   * @param {EventTarget} node
+   */
+  _detachListeners(node) {
+    super._attachListeners(node);
+    node.addEventListener(RequestEventTypes.send, this[internalSendHandler]);
   }
 
   /**
@@ -312,6 +347,35 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
      * @type {RequestConfig}
      */
     this.config = undefined;
+    this.ignoreContentOnGet = false;
+    /**
+     * This is set by the internal logic. When `ignoreContentOnGet` is set and the headers have `content-` headers
+     * a dialog is rendered when trying to send the request. When the user chooses to ignore the warning this
+     * flag makes sure that `send()` does not check headers.
+     * 
+     * @todo(pawel): This should be done in the request logic module plugin.
+     * Plugins can stop request indefinitely or cancel it.
+     */
+    this.ignoreValidationOnGet = false;
+    this.contentHeadersDialogOpened = false;
+
+    TelemetryEvents.event(this, {
+      category: 'Request editor',
+      action: 'Clear request',
+    });
+  }
+
+  /**
+   * Reads the headers value and applies the `ignoreContentOnGet` application setting.
+   */
+  [readHeaders]() {
+    const { method = '' } = this;
+    let { headers = '' } = this;
+    if (this.ignoreContentOnGet && method.toLowerCase() === 'get') {
+      const reg = /^content-\S+(\s+)?:.*\n?/gim;
+      headers = headers.replace(reg, '');
+    }
+    return headers.trim();
   }
 
   /**
@@ -319,7 +383,8 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
    * @returns {ArcEditorRequest}
    */
   serialize() {
-    const { requestId, url, method, headers, payload, requestActions, responseActions, authorization, uiConfig, config, } = this;
+    const { requestId, url, method, payload, requestActions, responseActions, authorization, uiConfig, config, } = this;
+    const headers = this[readHeaders]();
     const request = /** @type ArcBaseRequest */ ({
       url,
       method, 
@@ -339,6 +404,85 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
     });
 
     return result;
+  }
+
+  /**
+   * Validates state of the URL.
+   * @return {Boolean} True if the URL has a structure that looks like
+   * an URL which means scheme + something
+   */
+  validateUrl() {
+    const panel = this.shadowRoot.querySelector('url-input-editor');
+    if (!panel) {
+      return true;
+    }
+    return panel.validate(panel.value);
+  }
+
+  /**
+   * Checks if current request requires calling `authorize()` on the OAuth2 method.
+   *
+   * @return {boolean} This returns `true` only for valid OAuth 2 method that has no access token.
+   */
+  requiresAuthorization() {
+    const { authorization=[] } = this;
+    const oauth = authorization.find((method) => method.enabled && method.type === 'oauth 2');
+    if (!oauth) {
+      return false;
+    }
+    const authMethod = /** @type AuthorizationMethod */ (this.shadowRoot.querySelector('authorization-method[type="oauth 2"]'));
+    const cnf = /** @type OAuth2Authorization */ (oauth.config);
+    if (authMethod.validate() && !cnf.accessToken) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Validates headers for `Content-*` entries against current method.
+   * @param {ArcBaseRequest} request The request object
+   * @return {boolean} True if headers are invalid.
+   */
+  validateContentHeaders(request) {
+    const method = request.method || 'get';
+    if (method.toLowerCase() !== 'get') {
+      return false;
+    }
+    if ((request.headers || '').toLowerCase().indexOf('content-') === -1) {
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Dispatches the send request event to the ARC request engine.
+   */
+  send() {
+    if (!this.validateUrl()) {
+      return;
+    }
+    if (this.requiresAuthorization()) {
+      const authMethod = /** @type AuthorizationMethod */ (this.shadowRoot.querySelector('authorization-method[type="oauth 2"]'));
+      authMethod.authorize();
+      this[awaitingOAuth2authorization] = true;
+      return;
+    }
+    this.requestId = v4();
+    const request = this.serialize();
+    if (!this.ignoreValidationOnGet && this.validateContentHeaders(request.request)) {
+      this.contentHeadersDialogOpened = true;
+      return;
+    }
+    this.loadingRequest = true;
+    TransportEvents.request(this, request);
+    TelemetryEvents.event(this, {
+      category: 'Request editor',
+      action: 'Send request',
+    });
+  }
+
+  [internalSendHandler]() {
+    this.send();
   }
 
   /**
@@ -373,6 +517,11 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
     this.requestUpdate();
     const { selected } = e.detail;
     this.method = selected;
+    TelemetryEvents.event(this, {
+      category: 'Request editor',
+      action: 'Method selected',
+      label: selected,
+    });
   }
 
   /**
@@ -419,6 +568,12 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
     this.uiConfig.selectedEditor = this.selectedTab;
     this.notifyRequestChanged();
     this.notifyChanged('uiConfig', this.uiConfig);
+    const labels = ['Headers', 'Body', 'Authorization', 'Actions', 'Config', 'Code snippets'];
+    TelemetryEvents.event(this, {
+      category: 'Request editor',
+      action: 'Editor switched',
+      label: labels[this.selectedTab],
+    });
   }
 
   /**
@@ -595,12 +750,22 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
     }));
   }
 
+  [contentWarningCloseHandler]() {
+    this.contentHeadersDialogOpened = false;
+  }
+
+  [sendIgnoreValidation]() {
+    this.ignoreValidationOnGet = true;
+    this.send();
+  }
+
   render() {
     return html`
     <div class="content">
       ${this[urlMetaTemplate]()}
       ${this[tabsTemplate]()}
       ${this[currentEditorTemplate]()}
+      ${this[headersDialogTemplate]()}
     </div>
     `;
   }
@@ -860,5 +1025,32 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
       .payload="${payload}"
     ></http-code-snippets>
     `;
+  }
+
+  /**
+   * @returns {TemplateResult|string} The template for the invalid content headers dialog
+   */
+  [headersDialogTemplate]() {
+    const { compatibility, contentHeadersDialogOpened } = this;
+    return html`
+    <anypoint-dialog ?compatibility="${compatibility}" .opened="${contentHeadersDialogOpened}" @closed="${this[contentWarningCloseHandler]}">
+      <h2>Headers are not valid</h2>
+      <div>
+        <p>The <b>GET</b> request should not contain <b>content-*</b> headers. It may
+        cause the server to behave unexpectedly.</p>
+        <p><b>Do you want to continue?</b></p>
+      </div>
+      <div class="buttons">
+        <anypoint-button
+          data-dialog-dismiss
+          ?compatibility="${compatibility}"
+        >Cancel request</anypoint-button>
+        <anypoint-button
+          dialog-confirm
+          @click="${this[sendIgnoreValidation]}"
+          ?compatibility="${compatibility}"
+        >Continue</anypoint-button>
+      </div>
+    </anypoint-dialog>`
   }
 }

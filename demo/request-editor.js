@@ -8,6 +8,10 @@ import '@advanced-rest-client/arc-menu/history-menu.js';
 import '@advanced-rest-client/arc-models/request-model.js';
 import '@advanced-rest-client/arc-models/project-model.js';
 import '@advanced-rest-client/arc-models/url-history-model.js';
+import '@anypoint-web-components/anypoint-dialog/anypoint-dialog.js';
+import '@anypoint-web-components/anypoint-dialog/anypoint-dialog-scrollable.js';
+import '@advanced-rest-client/client-certificates/certificate-import.js';
+import '@advanced-rest-client/arc-models/client-certificate-model.js';
 import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
 import { ImportEvents, ArcNavigationEventTypes } from '@advanced-rest-client/arc-events';
 import { ArcModelEvents } from '@advanced-rest-client/arc-models';
@@ -25,11 +29,12 @@ const REQUEST_STORE_KEY = 'demo.are-request-ui.editorRequest';
 class ComponentDemo extends DemoPage {
   constructor() {
     super();
-    this.initObservableProperties(['request', 'requestId', 'withMenu', 'initialized']);
+    this.initObservableProperties(['request', 'requestId', 'withMenu', 'initialized', 'importingCertificate']);
     this.componentName = 'ARC request editor';
     this.compatibility = false;
     this.withMenu = false;
     this.initialized = false;
+    this.importingCertificate = false;
     /** 
      * @type {ArcEditorRequest}
      */
@@ -40,11 +45,15 @@ class ComponentDemo extends DemoPage {
     this.requestId = undefined;
     this.requestType = undefined;
     this.generator = new DataGenerator();
+    this.oauth2RedirectUri = 'http://auth.advancedrestclient.com/arc.html';
+    this.oauth2AuthorizationUri = `${window.location.protocol}//${window.location.host}${window.location.pathname}oauth-authorize.html`;
 
     this.generateData = this.generateData.bind(this);
     this.deleteData = this.deleteData.bind(this);
+    this._closeImportHandler = this._closeImportHandler.bind(this);
     
     window.addEventListener(ArcNavigationEventTypes.navigateRequest, this.navigateRequestHandler.bind(this));
+    window.addEventListener(ArcNavigationEventTypes.navigate, this.navigateHandler.bind(this));
     
     this.initEditors();
     this.restoreRequest();
@@ -81,6 +90,16 @@ class ComponentDemo extends DemoPage {
     } else {
       console.log('Navigate request', e.requestId, e.requestType, e.route, e.action);
     }
+  }
+
+  navigateHandler(e) {
+    if (e.route === 'client-certificate-import') {
+      this.importingCertificate = true;
+    }
+  }
+
+  _closeImportHandler() {
+    this.importingCertificate = false;
   }
 
   async loadMonaco() {
@@ -139,6 +158,8 @@ class ComponentDemo extends DemoPage {
       compatibility,
       request,
       withMenu,
+      oauth2AuthorizationUri,
+      oauth2RedirectUri,
     } = this;
 
     const { id, request: baseRequest } = request;
@@ -174,6 +195,8 @@ class ComponentDemo extends DemoPage {
               .authorization="${authorization}"
               .uiConfig="${ui}"
               .config="${config}"
+              .oauth2AuthorizationUri=${oauth2AuthorizationUri}
+              .oauth2RedirectUri="${oauth2RedirectUri}"
               @change="${this._requestChangeHandler}"
             ></arc-request-editor>
           </div>
@@ -205,14 +228,27 @@ class ComponentDemo extends DemoPage {
     </section>`;
   }
 
+  _certImportTemplate() {
+    const { importingCertificate } = this;
+    return html`
+    <anypoint-dialog ?opened="${importingCertificate}">
+      <anypoint-dialog-scrollable>
+        <certificate-import @close="${this._closeImportHandler}"></certificate-import>
+      </anypoint-dialog-scrollable>
+    </anypoint-dialog>
+    `;
+  }
+
   contentTemplate() {
     return html`
       <h2>ARC request meta details</h2>
       <project-model></project-model>
       <request-model></request-model>
       <url-history-model></url-history-model>
+      <client-certificate-model></client-certificate-model>
       ${this._demoTemplate()}
       ${this._dataControlsTemplate()}
+      ${this._certImportTemplate()}
     `;
   }
 }

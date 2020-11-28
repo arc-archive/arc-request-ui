@@ -1,6 +1,7 @@
 import { html } from 'lit-element';
 import '@advanced-rest-client/authorization-selector/authorization-selector.js';
 import '@advanced-rest-client/authorization-method/authorization-method.js';
+import '@advanced-rest-client/client-certificates/cc-authorization-method.js'
 
 /** @typedef {import('lit-element').TemplateResult} TemplateResult */
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.RequestAuthorization} RequestAuthorization */
@@ -76,6 +77,7 @@ function ntlmTemplate(compatibility, outlined, config={}) {
 /**
  * @param {boolean} compatibility
  * @param {boolean} outlined
+ * @param {string} oauth2RedirectUri
  * @param {any} [config={}]
  * @returns {TemplateResult} The template for the NTLM auth type.
  */
@@ -103,6 +105,26 @@ function oa2AuthTemplate(compatibility, outlined, oauth2RedirectUri, config={}) 
     .password="${password}"
     .redirectUri="${oauth2RedirectUri}"
   ></authorization-method>`;
+}
+
+/**
+ * @param {boolean} compatibility
+ * @param {boolean} outlined
+ * @param {any} [config={}]
+ * @returns {TemplateResult} The template for the Client Certificate auth type.
+ */
+function ccTemplate(compatibility, outlined, config={}) {
+  const { id } = (config.config || {});
+  return html`
+  <cc-authorization-method
+    ?compatibility="${compatibility}"
+    ?outlined="${outlined}"
+    .selected="${id}"
+    type="client certificate"
+    importButton
+  >
+  </cc-authorization-method>
+  `;
 }
 
 /**
@@ -148,6 +170,7 @@ export default function authorizationTemplate(changeHandler, config, auth=[]) {
     ${bearerTemplate(compatibility, outlined, readConfiguration(auth, 'bearer'))}
     ${ntlmTemplate(compatibility, outlined, readConfiguration(auth, 'ntlm'))}
     ${oa2AuthTemplate(compatibility, outlined, oauth2RedirectUri, readConfiguration(auth, 'oauth 2'))}
+    ${ccTemplate(compatibility, outlined, readConfiguration(auth, 'client certificate'))}
   </authorization-selector>
   `;
 }
