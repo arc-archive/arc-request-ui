@@ -8,21 +8,29 @@ import '@advanced-rest-client/arc-menu/history-menu.js';
 import '@advanced-rest-client/arc-models/request-model.js';
 import '@advanced-rest-client/arc-models/project-model.js';
 import '@advanced-rest-client/arc-models/url-history-model.js';
+import '@advanced-rest-client/arc-models/client-certificate-model.js';
+import '@advanced-rest-client/arc-models/variables-model.js';
+import '@advanced-rest-client/arc-models/auth-data-model.js';
 import '@anypoint-web-components/anypoint-dialog/anypoint-dialog.js';
 import '@anypoint-web-components/anypoint-dialog/anypoint-dialog-scrollable.js';
 import '@advanced-rest-client/client-certificates/certificate-import.js';
-import '@advanced-rest-client/arc-models/client-certificate-model.js';
+import { RequestFactory, ModulesRegistry, RequestAuthorization, ResponseAuthorization, ArcFetchRequest } from '@advanced-rest-client/request-engine';
 import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
-import { ImportEvents, ArcNavigationEventTypes } from '@advanced-rest-client/arc-events';
+import { ImportEvents, ArcNavigationEventTypes, TransportEventTypes } from '@advanced-rest-client/arc-events';
 import { ArcModelEvents } from '@advanced-rest-client/arc-models';
 import { MonacoLoader } from '@advanced-rest-client/monaco-support';
 import { v4 } from '@advanced-rest-client/uuid-generator';
+import jexl from '../web_modules/jexl/dist/Jexl.js'
 import '../arc-request-editor.js';
 
 /** @typedef {import('@advanced-rest-client/arc-events').ARCRequestNavigationEvent} ARCRequestNavigationEvent */
 /** @typedef {import('@advanced-rest-client/arc-events').ARCProjectNavigationEvent} ARCProjectNavigationEvent */
 /** @typedef {import('@advanced-rest-client/arc-models').ARCRequestDeletedEvent} ARCRequestDeletedEvent */
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ArcEditorRequest} ArcEditorRequest */
+
+ModulesRegistry.register(ModulesRegistry.request, '@advanced-rest-client/request-engine/request/request-authorization', RequestAuthorization, ['storage']);
+ModulesRegistry.register(ModulesRegistry.response, '@advanced-rest-client/request-engine/response/request-authorization', ResponseAuthorization, ['storage', 'events']);
+
 
 const REQUEST_STORE_KEY = 'demo.are-request-ui.editorRequest';
 
@@ -50,10 +58,12 @@ class ComponentDemo extends DemoPage {
 
     this.generateData = this.generateData.bind(this);
     this.deleteData = this.deleteData.bind(this);
+    this.factory = new RequestFactory(window, jexl);
     this._closeImportHandler = this._closeImportHandler.bind(this);
     
     window.addEventListener(ArcNavigationEventTypes.navigateRequest, this.navigateRequestHandler.bind(this));
     window.addEventListener(ArcNavigationEventTypes.navigate, this.navigateHandler.bind(this));
+    window.addEventListener(TransportEventTypes.request, this.makeRequest.bind(this));
     
     this.initEditors();
     this.restoreRequest();
@@ -154,6 +164,16 @@ class ComponentDemo extends DemoPage {
     localStorage.setItem(REQUEST_STORE_KEY, JSON.stringify(object));
   }
 
+  async makeRequest(e) {
+    const transportRequest = e.detail;
+    const request = await this.factory.processRequest(transportRequest);
+    const runner = new ArcFetchRequest();
+    const result = await runner.execute(request);
+
+    await this.factory.processResponse(result.request, result.transport, result.response);
+    console.log(result);
+  }
+
   _demoTemplate() {
     if (!this.initialized) {
       return html`<progress></progress>`;
@@ -252,6 +272,8 @@ class ComponentDemo extends DemoPage {
       <request-model></request-model>
       <url-history-model></url-history-model>
       <client-certificate-model></client-certificate-model>
+      <variables-model></variables-model>
+      <auth-data-model></auth-data-model>
       ${this._demoTemplate()}
       ${this._dataControlsTemplate()}
       ${this._certImportTemplate()}

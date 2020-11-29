@@ -25,11 +25,11 @@
     "@advanced-rest-client/arc-headers": "^0.1.4",
     "@advanced-rest-client/arc-icons": "^3.1.2",
     "@advanced-rest-client/arc-marked": "^1.1.0",
-    "@advanced-rest-client/arc-models": "^4.2.3",
+    "@advanced-rest-client/arc-models": "^4.2.5",
     "@advanced-rest-client/arc-resizable-mixin": "^1.2.0",
-    "@advanced-rest-client/arc-types": "^0.2.26",
+    "@advanced-rest-client/arc-types": "^0.2.27",
     "@advanced-rest-client/arc-url": "^0.1.2",
-    "@advanced-rest-client/authorization-method": "^0.2.1",
+    "@advanced-rest-client/authorization-method": "^0.2.2",
     "@advanced-rest-client/authorization-selector": "^0.2.2",
     "@advanced-rest-client/body-editor": "^0.1.5",
     "@advanced-rest-client/client-certificates": "^0.1.0",
@@ -63,6 +63,7 @@
     "@advanced-rest-client/arc-data-generator": "^3.1.12",
     "@advanced-rest-client/arc-demo-helper": "^2.2.0",
     "@advanced-rest-client/arc-menu": "^4.0.1",
+    "@advanced-rest-client/request-engine": "^0.1.3",
     "@open-wc/eslint-config": "^4.0.1",
     "@open-wc/testing": "^2.5.32",
     "@pika/web": "^0.6.1",
@@ -73,6 +74,7 @@
     "eslint": "^7.14.0",
     "eslint-config-prettier": "^6.15.0",
     "husky": "^4.3.0",
+    "jexl": "^2.3.0",
     "jsrsasign": "^10.1.4",
     "lint-staged": "^10.5.2",
     "sinon": "^9.2.1",
@@ -88,7 +90,13 @@
     "format": "npm run format:eslint",
     "test": "web-test-runner test/**/*.test.js --coverage --node-resolve --playwright --browsers chromium firefox webkit",
     "test:watch": "web-test-runner test/**/*.test.js --node-resolve --watch --playwright --browsers chromium",
-    "gen:wc": "wca analyze \"*.js\" --outFile custom-elements.json"
+    "gen:wc": "wca analyze \"*.js\" --outFile custom-elements.json",
+    "prepare": "pika-web"
+  },
+  "@pika/web": {
+    "webDependencies": [
+      "jexl/dist/Jexl.js"
+    ]
   },
   "eslintConfig": {
     "extends": [
