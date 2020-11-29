@@ -16,12 +16,12 @@ import '@anypoint-web-components/anypoint-dialog/anypoint-dialog-scrollable.js';
 import '@advanced-rest-client/client-certificates/certificate-import.js';
 import { RequestFactory, ModulesRegistry, RequestAuthorization, ResponseAuthorization, ArcFetchRequest } from '@advanced-rest-client/request-engine';
 import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
-import { ImportEvents, ArcNavigationEventTypes, TransportEventTypes } from '@advanced-rest-client/arc-events';
+import { ImportEvents, ArcNavigationEventTypes, TransportEventTypes, TransportEvents } from '@advanced-rest-client/arc-events';
 import { ArcModelEvents } from '@advanced-rest-client/arc-models';
 import { MonacoLoader } from '@advanced-rest-client/monaco-support';
 import { v4 } from '@advanced-rest-client/uuid-generator';
 import jexl from '../web_modules/jexl/dist/Jexl.js'
-import '../arc-request-editor.js';
+import '../arc-request-panel.js';
 
 /** @typedef {import('@advanced-rest-client/arc-events').ARCRequestNavigationEvent} ARCRequestNavigationEvent */
 /** @typedef {import('@advanced-rest-client/arc-events').ARCProjectNavigationEvent} ARCProjectNavigationEvent */
@@ -54,7 +54,6 @@ class ComponentDemo extends DemoPage {
     this.requestType = undefined;
     this.generator = new DataGenerator();
     this.oauth2RedirectUri = 'http://auth.advancedrestclient.com/arc.html';
-    this.oauth2AuthorizationUri = `${window.location.protocol}//${window.location.host}${window.location.pathname}oauth-authorize.html`;
 
     this.generateData = this.generateData.bind(this);
     this.deleteData = this.deleteData.bind(this);
@@ -157,11 +156,10 @@ class ComponentDemo extends DemoPage {
   }
 
   _requestChangeHandler() {
-    const editor = document.querySelector('arc-request-editor');
-    const object = editor.serialize();
-    console.log(object);
+    const panel = document.querySelector('arc-request-panel');
+    console.log(panel.editorRequest);
 
-    localStorage.setItem(REQUEST_STORE_KEY, JSON.stringify(object));
+    localStorage.setItem(REQUEST_STORE_KEY, JSON.stringify(panel.editorRequest));
   }
 
   async makeRequest(e) {
@@ -171,6 +169,7 @@ class ComponentDemo extends DemoPage {
     const result = await runner.execute(request);
 
     await this.factory.processResponse(result.request, result.transport, result.response);
+    TransportEvents.response(document.body, transportRequest.id, transportRequest.request, result.transport, result.response);
     console.log(result);
   }
 
@@ -184,12 +183,8 @@ class ComponentDemo extends DemoPage {
       compatibility,
       request,
       withMenu,
-      oauth2AuthorizationUri,
       oauth2RedirectUri,
     } = this;
-
-    const { id, request: baseRequest } = request;
-    const { method, ui, url, actions, payload, authorization, config, headers } = (baseRequest || {});
 
     return html`
       <section class="documentation-section">
@@ -209,34 +204,13 @@ class ComponentDemo extends DemoPage {
               <history-menu ?compatibility="${compatibility}"></history-menu>
             </nav>` : ''}
             
-            <arc-request-editor
+            <arc-request-panel
               ?compatibility="${compatibility}"
-              .requestId="${id}"
-              .url="${url}"
-              .method="${method}"
-              .headers="${headers}"
-              .responseActions="${actions && actions.response}"
-              .requestActions="${actions && actions.request}"
-              .payload="${payload}"
-              .authorization="${authorization}"
-              .uiConfig="${ui}"
-              .config="${config}"
-              .oauth2AuthorizationUri=${oauth2AuthorizationUri}
+              .editorRequest="${request}"
               .oauth2RedirectUri="${oauth2RedirectUri}"
               @change="${this._requestChangeHandler}"
-            ></arc-request-editor>
+            ></arc-request-panel>
           </div>
-
-          <label slot="options" id="mainOptionsLabel">Options</label>
-          <anypoint-checkbox
-            aria-describedby="mainOptionsLabel"
-            slot="options"
-            name="withMenu"
-            @change="${this._toggleMainOption}"
-            title="Uses request objects instead of request ids"
-          >
-            Render menu
-          </anypoint-checkbox>
         </arc-interactive-demo>
       </section>
     `;
@@ -267,7 +241,7 @@ class ComponentDemo extends DemoPage {
 
   contentTemplate() {
     return html`
-      <h2>ARC request editor</h2>
+      <h2>ARC request panel</h2>
       <project-model></project-model>
       <request-model></request-model>
       <url-history-model></url-history-model>

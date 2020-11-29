@@ -468,6 +468,7 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
       return;
     }
     this.requestId = v4();
+    this.notifyRequestChanged();
     const request = this.serialize();
     if (!this.ignoreValidationOnGet && this.validateContentHeaders(request.request)) {
       this.contentHeadersDialogOpened = true;
