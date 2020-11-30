@@ -42,7 +42,7 @@ import '../request-meta-details.js';
 /** @typedef {import('@advanced-rest-client/authorization-method').AuthorizationMethod} AuthorizationMethod */
 /** @typedef {import('@advanced-rest-client/arc-actions').ARCActionsElement} ARCActionsElement */
 /** @typedef {import('@advanced-rest-client/arc-url').UrlInputEditorElement} UrlInputEditorElement */
-/** @typedef {import('../index').ArcRequestConfigElement} ArcRequestConfigElement */
+/** @typedef {import('./ArcRequestConfigElement').ArcRequestConfigElement} ArcRequestConfigElement */
 
 export const urlMetaTemplate = Symbol('urlMetaTemplate');
 export const httpMethodSelectorTemplate = Symbol('httpMethodSelectorTemplate');

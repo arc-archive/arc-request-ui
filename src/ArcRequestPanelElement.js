@@ -55,6 +55,7 @@ export const requestMetaCloseHandler = Symbol('requestMetaCloseHandler');
 export const metaUpdateHandler = Symbol('metaUpdateHandler');
 export const storeRequestHandler = Symbol('storeRequestHandler');
 export const storeAsRequestHandler = Symbol('storeAsRequestHandler');
+export const boundEventsValue = Symbol('boundEventsValue');
 
 export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(LitElement)) {
   static get styles() {
@@ -115,7 +116,33 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
        * Indicates that the request meta editor is opened
        */
       requestMetaOpened: { type: Boolean },
+
+      /**
+       * When set it sets `eventsTarget` to itself and all editor event
+       * listeners starts listening on this node.
+       * This prohibits editors from getting data from the outside ot this
+       * component.
+       */
+      boundEvents: { type: Boolean },
     };
+  }
+
+  get boundEvents() {
+    return this[boundEventsValue];
+  }
+
+  set boundEvents(value) {
+    const old = this[boundEventsValue];
+    /* istanbul ignore if */
+    if (old === value) {
+      return;
+    }
+    this[boundEventsValue] = value;
+    if (value) {
+      this.eventsTarget = this;
+    } else {
+      this.eventsTarget = window;
+    }
   }
 
   /**

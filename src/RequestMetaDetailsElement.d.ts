@@ -6,14 +6,9 @@ import { ARCProjectNames } from './types';
 
 import {
   requestArcRequestEntity,
-  requestIdValue,
-  requestTypeValue,
   requestValue,
-  projectsValue,
   processRequestChange,
   processRequestValue,
-  awaitingUpdateValue,
-  loadingValue,
   openProjectHandler,
   requestChangeHandler,
   deleteHandler,
