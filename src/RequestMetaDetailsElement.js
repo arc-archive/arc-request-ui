@@ -361,7 +361,7 @@ export class RequestMetaDetailsElement extends ArcResizableMixin(LitElement) {
   [titleTemplate]() {
     const request = /** @type ARCSavedRequest|ARCHistoryRequest */ (this[requestValue] || {});
     const { isHistory, isStored } = this;
-    const isSaved = !isHistory;
+    const isSaved = isStored && !isHistory;
 
     const typed = /** @type ARCSavedRequest */ (request);
     const title = typed.name || 'Request details'

@@ -8,6 +8,7 @@ import '@anypoint-web-components/anypoint-chip-input/anypoint-chip-input.js';
 import '@polymer/iron-form/iron-form.js';
 import { ArcModelEvents } from '@advanced-rest-client/arc-models';
 import { MonacoTheme, MonacoStyles } from '@advanced-rest-client/monaco-support';
+import { WorkspaceEvents } from '@advanced-rest-client/arc-events';
 import {
   ProjectsListConsumerMixin,
   internals,
@@ -108,6 +109,11 @@ export class RequestMetaEditorElement extends ProjectsListConsumerMixin(RequestM
        * Enables material's outlined theme for inputs.
        */
       outlined: { type: Boolean },
+      /** 
+       * When set is always treats the current request as unsaved request.
+       * When storing the request the id and rev are removed.
+       */
+      saveAs: { type: Boolean },
     };
   }
 
@@ -132,7 +138,7 @@ export class RequestMetaEditorElement extends ProjectsListConsumerMixin(RequestM
    */
   get isSavedRequest() {
     const request = this[requestValue];
-    if (!request) {
+    if (!request || this.saveAs) {
       return false;
     }
     const history = !!(request && request.type === 'history');
@@ -142,6 +148,7 @@ export class RequestMetaEditorElement extends ProjectsListConsumerMixin(RequestM
   constructor() {
     super();
     this.outlined = false;
+    this.saveAs = false;
     this[monacoValueChanged] = this[monacoValueChanged].bind(this);
   }
 
@@ -236,8 +243,14 @@ export class RequestMetaEditorElement extends ProjectsListConsumerMixin(RequestM
     const record = await ArcModelEvents.Request.store(this, 'saved', request, projects);
     this[savingValue] = false;
     this.request = record.item;
+    this.dispatchEvent(new CustomEvent('update', {
+      detail: record.item,
+    }));
     this.requestUpdate();
     this.dispatchEvent(new CustomEvent('close'));
+    if (!this[overrideValue] || this.saveAs) {
+      WorkspaceEvents.appendRequest(this, record.item);
+    }
   }
 
   /**
@@ -248,7 +261,7 @@ export class RequestMetaEditorElement extends ProjectsListConsumerMixin(RequestM
     const storeRequest = /** @type ARCSavedRequest */ ({ ...this[requestValue] });
     storeRequest.name = this.name;
     storeRequest.description = this.description;
-    if (!this[overrideValue] && storeRequest._id) {
+    if ((!this[overrideValue] || this.saveAs) && storeRequest._id) {
       delete storeRequest._id;
       delete storeRequest._rev;
     }
@@ -320,7 +333,7 @@ export class RequestMetaEditorElement extends ProjectsListConsumerMixin(RequestM
 
   [titleTemplate]() {
     const { isHistory, isStored } = this;
-    const isSaved = !isHistory;
+    const isSaved = isStored && !isHistory;
     return html`
     <div class="title-area">
       <h2 class="title">Request details</h2>

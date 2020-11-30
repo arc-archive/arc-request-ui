@@ -16,10 +16,11 @@ function menuClosed(e) {
 
 /**
  * @param {Function} handler The menu selection handler
+ * @param {boolean} isStored Whether the current request is stored in the data store
  * @param {boolean=} compatibility 
  * @returns {TemplateResult} The template for the drop down options next to the URL editor
  */
-export default function requestMenuTemplate(handler, compatibility=false) {
+export default function requestMenuTemplate(handler, isStored, compatibility=false) {
   return html`
   <anypoint-menu-button
     class="request-menu"
@@ -52,6 +53,9 @@ export default function requestMenuTemplate(handler, compatibility=false) {
         <arc-icon slot="item-icon" class="context-menu-icon" icon="close"></arc-icon>
         Clear editor
       </anypoint-icon-item>
+
+      <div class="separator"></div>
+
       <anypoint-icon-item
         class="menu-item"
         title="Save the current request in the application"
@@ -62,6 +66,31 @@ export default function requestMenuTemplate(handler, compatibility=false) {
         <arc-icon slot="item-icon" class="context-menu-icon" icon="save"></arc-icon>
         Save
       </anypoint-icon-item>
+
+      <anypoint-icon-item
+        class="menu-item"
+        title="Save the current request as new request"
+        tabindex="-1"
+        data-action="saveas"
+        ?compatibility="${compatibility}"
+        ?disabled="${!isStored}"
+      >
+        <arc-icon slot="item-icon" class="context-menu-icon" icon="save"></arc-icon>
+        Save as...
+      </anypoint-icon-item>
+      <anypoint-icon-item
+        class="menu-item"
+        title="Show request details"
+        tabindex="-1"
+        data-action="details"
+        ?compatibility="${compatibility}"
+      >
+        <arc-icon slot="item-icon" class="context-menu-icon" icon="infoOutline"></arc-icon>
+        Details
+      </anypoint-icon-item>
+
+      <div class="separator"></div>
+
       <anypoint-icon-item
         class="menu-item"
         title="Export this request"
@@ -75,13 +104,12 @@ export default function requestMenuTemplate(handler, compatibility=false) {
 
       <anypoint-icon-item
         class="menu-item"
-        title="Show request details"
+        title="Export this request"
         tabindex="-1"
-        data-action="details"
+        data-action="import-curl"
         ?compatibility="${compatibility}"
       >
-        <arc-icon slot="item-icon" class="context-menu-icon" icon="infoOutline"></arc-icon>
-        Details
+        Import cURL command
       </anypoint-icon-item>
 
       <div class="separator"></div>

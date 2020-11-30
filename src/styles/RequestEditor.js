@@ -22,7 +22,7 @@ url-input-editor {
   margin: 0 8px;
   background-color: var(--request-editor-url-input-background-color, rgb(255, 255, 255));
   border-radius: 20px;
-  --url-input-editor-border-color: transparent;
+  /* --url-input-editor-border-color: transparent; */
 }
 
 .http-label {
@@ -92,6 +92,10 @@ url-input-editor {
   flex: 1;
 }
 
+.menu-item[disabled] {
+  color: var(--menu-item-disabled-color, #9e9e9e);
+}
+
 .separator {
   height: 1px;
   background-color: var(--menu-item-divider-color, #e5e5e5);
@@ -116,5 +120,9 @@ url-input-editor {
   width: 20px;
   height: 20px;
   font-size: 0.85rem;
+}
+
+.curl-input {
+  min-width: 360px;
 }
 `;

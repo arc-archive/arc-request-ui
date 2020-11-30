@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
-  <title>ARC request editor demo</title>
+  <title>ARC request panel demo</title>
   <script>
   if (window.location.search.indexOf('response_type') !== -1 && window.location.search.indexOf('redirect_uri') !== -1) {
     // OAUTH DEMO
@@ -37,6 +37,9 @@
     --anypoint-dropdown-shadow: 0 4px 5px 0 rgba(0, 0, 0, 0.14), 0 1px 10px 0 rgba(0, 0, 0, 0.12), 0 2px 4px -1px rgba(0, 0, 0, 0.4);
     --anypoint-autocomplete-dropdown-shadow: 0 4px 5px 0 rgba(0, 0, 0, 0.14), 0 1px 10px 0 rgba(0, 0, 0, 0.12), 0 2px 4px -1px rgba(0, 0, 0, 0.4);
     --primary-color: #00a2df;
+
+    --url-input-editor-border-color: #e5e5ee;
+    --primary-background-color: #ffffff;
 
     
     --action-button-background-color: var(--primary-color);
@@ -127,7 +130,6 @@
     --api-form-action-icon-color: #fff;
     --api-form-action-button-color: #fff;
     --anypoint-icon-button-emphasis-low-color: #fff;
-    --anypoiont-autocomplete-background-color: #494949;
     --auth-method-oauth2-redirect-info-color: #fff;
     --from-row-action-icon-color: #fff;
     --inline-documentation-color: #fff;
@@ -185,7 +187,12 @@
   arc-request-panel {
     margin: 20px;
     flex: 1;
-    display: block;
+    height: 70vh;
+  }
+
+  .url-input {
+    width: 100%;
+    padding: 4px 12px;
   }
   </style>
   <script src="../node_modules/cryptojslib/rollups/md5.js" async></script>

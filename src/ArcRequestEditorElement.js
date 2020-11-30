@@ -8,6 +8,7 @@ import { TransportEvents, TelemetryEvents, RequestEventTypes } from '@advanced-r
 import '@anypoint-web-components/anypoint-dropdown/anypoint-dropdown.js';
 import '@anypoint-web-components/anypoint-listbox/anypoint-listbox.js';
 import '@anypoint-web-components/anypoint-item/anypoint-icon-item.js';
+import '@anypoint-web-components/anypoint-input/anypoint-textarea.js';
 import '@advanced-rest-client/arc-url/url-input-editor.js';
 import '@advanced-rest-client/arc-icons/arc-icon.js';
 import '@anypoint-web-components/anypoint-tabs/anypoint-tabs.js';
@@ -21,7 +22,9 @@ import '@anypoint-web-components/anypoint-button/anypoint-button.js';
 import elementStyles from './styles/RequestEditor.js';
 import requestMenuTemplate from './templates/RequestMenu.template.js';
 import authorizationTemplates from './templates/RequestAuth.template.js';
+import { CurlParser } from './lib/CurlParser.js';
 import '../arc-request-config.js';
+import '../request-meta-details.js';
 
 /** @typedef {import('lit-element').TemplateResult} TemplateResult */
 /** @typedef {import('@anypoint-web-components/anypoint-listbox').AnypointListbox} AnypointListbox */
@@ -76,6 +79,12 @@ export const headersDialogTemplate = Symbol('headersDialogTemplate');
 export const contentWarningCloseHandler = Symbol('contentWarningCloseHandler');
 export const sendIgnoreValidation = Symbol('sendIgnoreValidation');
 export const internalSendHandler = Symbol('internalSendHandler');
+export const metaDetailsTemplate = Symbol('metaDetailsTemplate');
+export const metaRequestEditorHandler = Symbol('metaRequestEditorHandler');
+export const requestMetaCloseHandler = Symbol('requestMetaCloseHandler');
+export const curlDialogTemplate = Symbol('curlDialogTemplate');
+export const importCURL = Symbol('importCURL');
+export const curlCloseHandler = Symbol('curlCloseHandler');
 
 export const HttpMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'CONNECT', 'OPTIONS', 'TRACE'];
 export const NonPayloadMethods = ['GET', 'HEAD'];
@@ -119,11 +128,6 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
        * List of request actions to be performed before request is send
        */
       requestActions: { type: Array },
-      /**
-       * When set it will display the UI to indicate that the request is being
-       * send.
-       */
-      loadingRequest: { type: Boolean, reflect: true, },
       /**
        * Redirect URL for the OAuth2 authorization.
        * If can be also set by dispatching `oauth2-redirect-url-changed`
@@ -188,6 +192,24 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
        * When set the `content-` headers warning dialog is rendered.
        */
       contentHeadersDialogOpened: { type: Boolean },
+
+      /** 
+       * When set the cURL import dialog is rendered.
+       */
+      curlDialogOpened: { type: Boolean },
+
+      /**
+       * When the request is stored in the data store this is the id of the stored request
+       */
+      storedId: { type: String },
+      /**
+       * When the request is stored in the data store this is the type of the stored request
+       */
+      storedType: { type: String },
+      /**
+       * When set then it renders metadata editor.
+       */
+      metaEditorEnabled: { type: Boolean },
     };
   }
 
@@ -263,6 +285,22 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
     }
   }
 
+  /**
+   * @returns {boolean} Indicates that the current request is a "saved" request.
+   */
+  get isSaved() {
+    const { storedId, storedType } = this;
+    return !!storedId && storedType === 'saved';
+  }
+
+  /**
+   * @returns {boolean} Indicates that the current request is stored in the data store.
+   */
+  get isStored() {
+    const { storedId, storedType } = this;
+    return !!storedId && !!storedType;
+  }
+
   constructor() {
     super();
     this.reset();
@@ -315,7 +353,6 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
      * @type {RunnableAction[]}
      */
     this.requestActions = undefined;
-    this.loadingRequest = false;
     this.readOnly = false;
     this.compatibility = false;
     this.outlined = false;
@@ -358,11 +395,16 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
      */
     this.ignoreValidationOnGet = false;
     this.contentHeadersDialogOpened = false;
+    this.curlDialogOpened = false;
+    this.storedId = '';
+    this.storedType = '';
+    this.metaEditorEnabled = false;
 
     TelemetryEvents.event(this, {
       category: 'Request editor',
       action: 'Clear request',
     });
+    this.dispatchEvent(new CustomEvent('clear'));
   }
 
   /**
@@ -474,12 +516,18 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
       this.contentHeadersDialogOpened = true;
       return;
     }
-    this.loadingRequest = true;
     TransportEvents.request(this, request);
     TelemetryEvents.event(this, {
       category: 'Request editor',
       action: 'Send request',
     });
+  }
+
+  /**
+   * Aborts the request
+   */
+  abort() {
+    TransportEvents.abort(this, this.requestId);
   }
 
   [internalSendHandler]() {
@@ -551,11 +599,13 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
       case 'details':
       case 'close':
       case 'duplicate':
+      case 'saveas':
         this.dispatchEvent(new CustomEvent(action));
         break;
-      default: 
-        // eslint-disable-next-line no-console
-        console.error('Implement me')
+      case 'import-curl':
+        this.curlDialogOpened = true;
+        break;
+      default:
     }
   }
 
@@ -760,6 +810,46 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
     this.send();
   }
 
+  [metaRequestEditorHandler]() {
+    this.metaEditorEnabled = true;
+  }
+
+  [requestMetaCloseHandler]() {
+    this.metaEditorEnabled = false;
+  }
+
+  /**
+   * @param {CustomEvent} e
+   */
+  [curlCloseHandler](e) {
+    this.curlDialogOpened = false;
+    const { canceled, confirmed } = e.detail;
+    if (canceled || !confirmed) {
+      return;
+    }
+    const input = /** @type HTMLInputElement */ (this.shadowRoot.querySelector('.curl-input'));
+    const { value } = input;
+    this[importCURL](value);
+  }
+
+  /**
+   * Parses the cURL command and replaces the current request
+   * @param {string} value
+   */
+  [importCURL](value) {
+    const parser = new CurlParser();
+    const result = parser.parse(value);
+    this.reset();
+    this.url = result.url;
+    this.method = result.method || 'GET';
+    this.headers = result.headers.join('\n');
+    if (result.data && result.data.ascii) {
+      this.payload = result.data.ascii;
+      this.selectedTab = 1;
+    }
+    this.notifyRequestChanged();
+  }
+
   render() {
     return html`
     <div class="content">
@@ -767,6 +857,7 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
       ${this[tabsTemplate]()}
       ${this[currentEditorTemplate]()}
       ${this[headersDialogTemplate]()}
+      ${this[curlDialogTemplate]()}
     </div>
     `;
   }
@@ -779,7 +870,7 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
     <div class="url-meta">
       ${this[httpMethodSelectorTemplate]()}
       ${this[urlEditorTemplate]()}
-      ${requestMenuTemplate(this[requestMenuHandler], this.compatibility)}
+      ${requestMenuTemplate(this[requestMenuHandler], this.isStored, this.compatibility)}
     </div>
     `;
   }
@@ -859,6 +950,7 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
       selectedTab,
       enabledAuthLength,
       actionsLength,
+      isSaved,
     } = this;
     return html`
     <anypoint-tabs
@@ -873,6 +965,7 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
       <anypoint-tab ?compatibility="${compatibility}">Actions <span class="tab-counter">${actionsLength}</span></anypoint-tab>
       <anypoint-tab ?compatibility="${compatibility}">Config</anypoint-tab>
       <anypoint-tab ?compatibility="${compatibility}">Code snippets</anypoint-tab>
+      <anypoint-tab ?compatibility="${compatibility}" ?hidden="${!isSaved}">Meta</anypoint-tab>
     </anypoint-tabs>`;
   }
 
@@ -887,6 +980,7 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
     const actionsVisible = selectedTab === 3;
     const configVisible = selectedTab === 4;
     const codeVisible = selectedTab === 5;
+    const metaVisible = selectedTab === 6;
 
     return html`
     <div class="panel">
@@ -896,6 +990,7 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
     ${this[actionsTemplate](actionsVisible)}
     ${this[configTemplate](configVisible)}
     ${this[snippetsTemplate](codeVisible)}
+    ${this[metaDetailsTemplate](metaVisible)}
     </div>
     `;
   }
@@ -1029,6 +1124,35 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
   }
 
   /**
+   * @param {boolean} visible Whether the panel should be rendered
+   * @returns {TemplateResult|string} The template for the request meta details
+   */
+  [metaDetailsTemplate](visible) {
+    if (!visible) {
+      return '';
+    }
+    const { storedId, storedType, compatibility, metaEditorEnabled } = this;
+    if (metaEditorEnabled) {
+      return html`
+      <request-meta-editor
+        ?compatibility="${compatibility}"
+        .requestId="${storedId}"
+        .requestType="${storedType}"
+        @close="${this[requestMetaCloseHandler]}"
+      ></request-meta-editor>
+      `;
+    }
+    return html`
+    <request-meta-details
+      ?compatibility="${compatibility}"
+      .requestId="${storedId}"
+      .requestType="${storedType}"
+      @edit="${this[metaRequestEditorHandler]}"
+    ></request-meta-details>
+    `;
+  }
+
+  /**
    * @returns {TemplateResult|string} The template for the invalid content headers dialog
    */
   [headersDialogTemplate]() {
@@ -1047,8 +1171,37 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
           ?compatibility="${compatibility}"
         >Cancel request</anypoint-button>
         <anypoint-button
-          dialog-confirm
+          data-dialog-confirm
           @click="${this[sendIgnoreValidation]}"
+          ?compatibility="${compatibility}"
+        >Continue</anypoint-button>
+      </div>
+    </anypoint-dialog>`
+  }
+
+  /**
+   * @returns {TemplateResult|string} The template for the invalid content headers dialog
+   */
+  [curlDialogTemplate]() {
+    const { compatibility, curlDialogOpened } = this;
+    if (!curlDialogOpened) {
+      return '';
+    }
+    return html`
+    <anypoint-dialog ?compatibility="${compatibility}" opened @closed="${this[curlCloseHandler]}">
+      <h2>Enter the cURL command</h2>
+      <div>
+        <anypoint-textarea class="curl-input">
+          <label slot="label">Paste command here</label>
+        </anypoint-textarea>
+      </div>
+      <div class="buttons">
+        <anypoint-button
+          data-dialog-dismiss
+          ?compatibility="${compatibility}"
+        >Cancel</anypoint-button>
+        <anypoint-button
+          data-dialog-confirm
           ?compatibility="${compatibility}"
         >Continue</anypoint-button>
       </div>
