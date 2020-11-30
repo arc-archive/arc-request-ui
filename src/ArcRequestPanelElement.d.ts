@@ -49,59 +49,59 @@ export declare class ArcRequestPanelElement extends EventsTargetMixin(ArcResizab
   /**
    * Computed value. If true then the request is loading.
    * This resets each time the request status changes.
-   * @attributes
+   * @attribute
    */
   loading: boolean;
   /**
    * Redirect URL for the OAuth2 authorization.
    * If can be also set by dispatching `oauth2-redirect-url-changed`
    * with `value` property on the `detail` object.
-   * @attributes
+   * @attribute
    */
   oauth2RedirectUri: string;
   /**
    * When set it will ignore all `content-*` headers when the request method
    * is either `GET` or `HEAD`.
    * When not set or `false` it renders warning dialog.
-   * @attributes
+   * @attribute
    */
   ignoreContentOnGet: boolean;
   /**
    * Enables compatibility with Anypoint platform
-   * @attributes
+   * @attribute
    */
   compatibility: boolean;
   /**
    * Enables material's outlined theme for inputs.
-   * @attributes
+   * @attribute
    */
   outlined: boolean;
   /** 
    * The list of active response panel (renderer panels). This is a list of names of opened panels.
-   * @attributes
+   * @attribute
    */
   responsePanels: string[];
   /** 
    * The name of the selected response panel.
-   * @attributes
+   * @attribute
    */
   selectedResponsePanel: string;
 
   /**
    * Indicates that the export options panel is currently rendered.
-   * @attributes
+   * @attribute
    */
   exportOptionsOpened: boolean;
 
   /**
    * Indicates that the request details is opened
-   * @attributes
+   * @attribute
    */
   requestDetailsOpened: boolean;
 
   /**
    * Indicates that the request meta editor is opened
-   * @attributes
+   * @attribute
    */
   requestMetaOpened: boolean;
 
@@ -110,7 +110,7 @@ export declare class ArcRequestPanelElement extends EventsTargetMixin(ArcResizab
    * listeners starts listening on this node.
    * This prohibits editors from getting data from the outside ot this
    * component.
-   * @attributes
+   * @attribute
    */
   boundEvents: boolean;
 
