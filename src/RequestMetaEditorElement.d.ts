@@ -57,10 +57,12 @@ export declare class RequestMetaEditorElement extends ProjectsListConsumerMixin(
 
   /**
    * Name of the request.
+   * @attribute
    */
   name: string;
   /**
    * Request description.
+   * @attribute
    */
   description: string;
   /**
@@ -70,8 +72,16 @@ export declare class RequestMetaEditorElement extends ProjectsListConsumerMixin(
   [selectedProjectsValue]: string[];
   /**
    * Enables material's outlined theme for inputs.
+   * @attribute
    */
   outlined: boolean;
+
+  /** 
+   * When set is always treats the current request as unsaved request.
+   * When storing the request the id and rev are removed.
+   * @attribute
+   */
+  saveAs: boolean;
 
   /**
    * Computes value for `isSaved` property.
