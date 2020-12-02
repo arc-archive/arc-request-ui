@@ -47,4 +47,8 @@ export declare interface AddRequestOptions {
    * Won't attempt to select added request
    */
   noAutoSelect?: boolean;
+  /**
+   * When set it will not call the `requestUpdate()`
+   */
+  skipUpdate?: boolean;
 }

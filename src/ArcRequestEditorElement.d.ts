@@ -100,11 +100,11 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
   /**
    * List of request actions to be performed when the response is received
    */
-  responseActions: RunnableAction[]
+  responseActions: RunnableAction[];
   /**
    * List of request actions to be performed before request is send
    */
-  requestActions: RunnableAction[]
+  requestActions: RunnableAction[];
   /**
    * Redirect URL for the OAuth2 authorization.
    * If can be also set by dispatching `oauth2-redirect-url-changed`

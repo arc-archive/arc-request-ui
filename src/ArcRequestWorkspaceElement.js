@@ -3,6 +3,7 @@ import { LitElement, html } from 'lit-element';
 import { ArcResizableMixin } from '@advanced-rest-client/arc-resizable-mixin';
 import { EventsTargetMixin } from '@advanced-rest-client/events-target-mixin';
 import { v4 } from '@advanced-rest-client/uuid-generator';
+import { WorkspaceEvents } from '@advanced-rest-client/arc-events';
 import '@anypoint-web-components/anypoint-tabs/anypoint-tabs.js';
 import '@anypoint-web-components/anypoint-tabs/anypoint-tab.js';
 import '@anypoint-web-components/anypoint-button/anypoint-icon-button.js';
@@ -13,7 +14,9 @@ import '../arc-request-panel.js';
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ArcBaseRequest} ArcBaseRequest */
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ARCSavedRequest} ARCSavedRequest */
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ARCHistoryRequest} ARCHistoryRequest */
+/** @typedef {import('@advanced-rest-client/arc-types').Workspace.DomainWorkspace} DomainWorkspace */
 /** @typedef {import('@anypoint-web-components/anypoint-tabs').AnypointTabs} AnypointTabs */
+/** @typedef {import('@anypoint-web-components/anypoint-tabs').AnypointTab} AnypointTab *
 /** @typedef {import('lit-element').TemplateResult} TemplateResult */
 /** @typedef {import('./types').WorkspaceTab} WorkspaceTab */
 /** @typedef {import('./types').AddRequestOptions} AddRequestOptions */
@@ -34,6 +37,9 @@ export const tabsSelectionHandler = Symbol('tabsSelectionHandler');
 export const requestChangeHandler = Symbol('requestChangeHandler');
 export const tabDragStartHandler = Symbol('tabDragStartHandler');
 export const tabDragEndHandler = Symbol('tabDragEndHandler');
+export const reorderInfo = Symbol('reorderInfo');
+export const workspaceValue = Symbol('workspaceValue');
+export const restoreRequests = Symbol('restoreRequests');
 
 export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMixin(LitElement)) {
   static get styles() {
@@ -56,6 +62,15 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
        * with `value` property on the `detail` object.
        */
       oauth2RedirectUri: { type: String },
+      /** 
+       *  When set, this identifier will be passed to the read and write workspace events
+       */
+      backendId: { type: String },
+
+      /** 
+       * When set it requests workspace state read when connected to the DOM.
+       */
+      autoRead: { type: Boolean },
     };
   }
 
@@ -79,6 +94,80 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
      * @type {string}
      */
     this.oauth2RedirectUri = undefined;
+    /** 
+     * @type {DomainWorkspace}
+     */
+    this[workspaceValue] = {
+      kind: 'ARC#DomainWorkspace',
+      id: v4(),
+    };
+    /** 
+     * @type {string}
+     */
+    this.backendId = undefined;
+    this.autoRead = false;
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    if (this.autoRead) {
+      this.restore();
+    }
+  }
+
+  /**
+   * Dispatches the workspace restore event and sets the workspace data.
+   * If the event does not return workspace an empty workspace is created.
+   */
+  async restore() {
+    this.clear();
+    const result = await WorkspaceEvents.read(this, this.backendId);
+    if (result) {
+      if (!result.id) {
+        result.id = v4();
+      }
+      this[workspaceValue] = result;
+    } else {
+      this[workspaceValue] = /** @type DomainWorkspace */ ({
+        kind: 'ARC#DomainWorkspace',
+        id: v4(),
+      });
+    }
+    this.processWorkspace(this[workspaceValue]);
+    await this.requestUpdate();
+    this.notifyResize();
+  }
+
+  /**
+   * Dispatches an event to store the current workspace.
+   */
+  async store() {
+    const workspace = this[workspaceValue];
+    await WorkspaceEvents.write(this, workspace, this.backendId);
+  }
+
+  /**
+   * Updates local properties from the workspace state file.
+   * @param {DomainWorkspace} workspace
+   */
+  processWorkspace(workspace) {
+    this[restoreRequests](workspace.requests);
+    if (typeof workspace.selected === 'number') {
+      this.selected = workspace.selected;
+    } else {
+      this.selected = 0;
+    }
+  }
+
+  /**
+   * @param {(ArcBaseRequest|ARCSavedRequest|ARCHistoryRequest)[]} requests
+   */
+  [restoreRequests](requests) {
+    if (!Array.isArray(requests) || !requests.length) {
+      this.addEmpty();
+      return;
+    }
+    requests.forEach((request) => this.add(request, { noAutoSelect: true, skipPositionCheck: true, skipUpdate: true, }));
   }
 
   /**
@@ -108,7 +197,9 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     if (!options.noAutoSelect) {
       this.selectByTabId(tab);
     }
-    this.requestUpdate();
+    if (!options.skipUpdate) {
+      this.requestUpdate();
+    }
     return index;
   }
 
@@ -303,13 +394,56 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     this.requestUpdate();
   }
 
-  [tabDragStartHandler]() {
-    // 
+  /**
+   * @param {DragEvent} e
+   */
+  [tabDragStartHandler](e) {
+    const node = /** @type AnypointTab */ (e.currentTarget);
+    const index = Number(node.dataset.index);
+    if (Number.isNaN(index)) {
+      return;
+    }
+    const tabs = this[tabsValue];
+    const tab = tabs[index];
+    if (!tab) {
+      return;
+    }
+    const requests = this[requestsValue];
+    const requestIndex = requests.findIndex((item) => item.tab === tab.id);
+    if (requestIndex === -1) {
+      return;
+    }
+    const request = requests[requestIndex];
+    const typed = /** @type ARCSavedRequest */ (request.request);
+    const dt = e.dataTransfer;
+    if (typed._id) {
+      dt.setData('arc/id', typed._id);
+      dt.setData('arc/type', typed.type);
+      if (typed.type === 'history') {
+        dt.setData('arc/history', '1');
+      } else if (typed.type === 'saved') {
+        dt.setData('arc/saved', '1');
+      }
+    }
+    dt.setData('arc/request', '1');
+    dt.setData('arc/source', this.localName);
+    dt.effectAllowed = 'copy';
+
+    this[reorderInfo] = {
+      type: 'track',
+      dragElement: node,
+      dragIndex: index,
+    };
   }
 
-  [tabDragEndHandler]() {
-    // 
-  }
+  // /**
+  //  * @param {DragEvent} e
+  //  */
+  // [tabDragEndHandler](e) {
+  //   if (this[reorderInfo] && this[reorderInfo].type === 'track') {
+  //     console.log('aaaaaaaaaaaaaaaaaaaaaaaaaa');
+  //   }
+  // }
 
   render() {
     return html`
