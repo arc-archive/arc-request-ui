@@ -929,12 +929,13 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
    * @returns {TemplateResult} The template for the HTTP URL editor
    */
   [urlEditorTemplate]() {
-    const { url='', outlined, compatibility } = this;
+    const { url='', outlined, compatibility, eventsTarget } = this;
     return html`
     <url-input-editor
       ?compatibility="${compatibility}"
       ?outlined="${outlined}"
       .value="${url}"
+      .eventsTarget="${eventsTarget}"
       @change="${this[urlHandler]}"
     ></url-input-editor>
     `;
@@ -1030,6 +1031,7 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
       payload,
       readOnly,
       contentType,
+      eventsTarget
     } = this;
     return html`
     <body-editor
@@ -1039,6 +1041,7 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
       ?readOnly="${readOnly}"
       .value="${payload}"
       .contentType="${contentType}"
+      .eventsTarget="${eventsTarget}"
       @change="${this[bodyHandler]}"
       @selected="${this[bodyHandler]}"
     ></body-editor>
@@ -1070,11 +1073,12 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
     if (!visible) {
       return '';
     }
-    const { requestActions, responseActions, outlined, compatibility } = this;
+    const { requestActions, responseActions, outlined, compatibility, eventsTarget } = this;
     return html`
     <arc-actions
       .request="${requestActions}"
       .response="${responseActions}"
+      .eventsTarget="${eventsTarget}"
       ?compatibility="${compatibility}"
       ?outlined="${outlined}"
       slot="content"
@@ -1092,10 +1096,11 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
     if (!visible) {
       return '';
     }
-    const { config, outlined, compatibility, readOnly } = this;
+    const { config, outlined, compatibility, readOnly, eventsTarget } = this;
     return html`
     <arc-request-config 
       .config="${config}"
+      .eventsTarget="${eventsTarget}"
       ?outlined="${outlined}"
       ?compatibility="${compatibility}"
       ?readOnly="${readOnly}"

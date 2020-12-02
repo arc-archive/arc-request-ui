@@ -472,6 +472,7 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
     return html`
     <arc-request-editor
       ?compatibility="${compatibility}"
+      .eventsTarget="${this.eventsTarget}"
       .requestId="${id}"
       .url="${url}"
       .method="${method}"
