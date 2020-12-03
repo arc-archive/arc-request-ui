@@ -48,6 +48,8 @@ export const storeWorkspace = Symbol('storeWorkspace');
 export const storeTimeoutValue = Symbol('storeTimeoutValue');
 export const syncWorkspaceRequests = Symbol('syncWorkspaceRequests');
 export const addNewHandler = Symbol('addNewHandler');
+export const panelCloseHandler = Symbol('panelCloseHandler');
+export const panelDuplicateHandler = Symbol('panelDuplicateHandler');
 
 export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMixin(LitElement)) {
   static get styles() {
@@ -360,6 +362,30 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
   }
 
   /**
+   * Duplicates the tab at a position
+   * @param {number} index Yhe index of the tab to duplicate
+   */
+  duplicateTab(index) {
+    const tabs = this[tabsValue];
+    const tab = tabs[index];
+    if (!tab) {
+      return;
+    }
+    const requests = this[requestsValue];
+    const request = requests.find((item) => item.tab === tab.id);
+    const copy = /** @type ARCSavedRequest */ ({ ...request.request });
+    delete copy._id;
+    delete copy._rev;
+    delete copy.name;
+    delete copy.driveId;
+    delete copy.projects;
+    delete copy.type;
+    this.add(copy, {
+      skipPositionCheck: true,
+    });
+  }
+
+  /**
    * Adds a new tab to the tabs list.
    * Note, this function does not call `requestUpdate()`.
    * @param {ArcBaseRequest|ARCSavedRequest|ARCHistoryRequest} request The request that is associated with the tab
@@ -523,6 +549,30 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     e.currentTarget.blur();
   }
 
+  /**
+   * A handler for the `close` event dispatched by the request panel. Closes the panel.
+   * @param {Event} e
+   */
+  [panelCloseHandler](e) {
+    const node = /** @type HTMLElement */ (e.target);
+    const { tab } = node.dataset;
+    const tabs = this[tabsValue];
+    const index = tabs.findIndex((item) => item.id === tab);
+    this.removeRequest(index);
+  }
+
+  /**
+   * A handler for the `duplicate` event dispatched by the request panel. 
+   * @param {Event} e
+   */
+  [panelDuplicateHandler](e) {
+    const node = /** @type HTMLElement */ (e.target);
+    const { tab } = node.dataset;
+    const tabs = this[tabsValue];
+    const index = tabs.findIndex((item) => item.id === tab);
+    this.duplicateTab(index);
+  }
+
   render() {
     return html`
     ${this[tabsTemplate]()}
@@ -614,6 +664,8 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
       .editorRequest="${request}"
       .oauth2RedirectUri="${this.oauth2RedirectUri}"
       @change="${this[requestChangeHandler]}"
+      @close="${this[panelCloseHandler]}"
+      @duplicate="${this[panelDuplicateHandler]}"
       class="stacked"
       data-index="${index}"
       data-tab="${request.tab}"

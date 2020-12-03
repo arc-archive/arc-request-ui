@@ -33,11 +33,14 @@ export declare const metaUpdateHandler: unique symbol;
 export declare const storeRequestHandler: unique symbol;
 export declare const storeAsRequestHandler: unique symbol;
 export declare const boundEventsValue: unique symbol;
+export declare const retargetEvent: unique symbol;
 
 /**
  * @fires selectedresponsepanelchange When selected tab in the response panel change
  * @fires responsepanelschange When the number of opened response panels change
  * @fires change When the editor request object change
+ * @fires close Retargeted from the editor event
+ * @fires duplicate Retargeted from the editor event
  */
 export declare class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(LitElement)) {
   static get styles(): CSSResult;
@@ -206,6 +209,11 @@ export declare class ArcRequestPanelElement extends EventsTargetMixin(ArcResizab
    * Handler for the event dispatched by the meta editor indicating that the request has changed.
    */
   [metaUpdateHandler](e: CustomEvent): void;
+
+  /**
+   * Retargets the event to the parent.
+   */
+  [retargetEvent](e: Event): void;
 
   render(): TemplateResult;
 

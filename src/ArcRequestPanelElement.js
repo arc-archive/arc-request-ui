@@ -56,6 +56,7 @@ export const metaUpdateHandler = Symbol('metaUpdateHandler');
 export const storeRequestHandler = Symbol('storeRequestHandler');
 export const storeAsRequestHandler = Symbol('storeAsRequestHandler');
 export const boundEventsValue = Symbol('boundEventsValue');
+export const retargetEvent = Symbol('retargetEvent');
 
 export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(LitElement)) {
   static get styles() {
@@ -449,6 +450,14 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
     this.requestUpdate();
   }
 
+  /**
+   * Retargets the event to the parent.
+   * @param {Event} e 
+   */
+  [retargetEvent](e) {
+    this.dispatchEvent(new Event(e.type));
+  }
+
   render() {
     return html`
     ${this[requestEditorTemplate]()}
@@ -493,6 +502,8 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
       @details="${this[detailRequestHandler]}"
       @save="${this[storeRequestHandler]}"
       @saveas="${this[storeAsRequestHandler]}"
+      @close="${this[retargetEvent]}"
+      @duplicate="${this[retargetEvent]}"
     ></arc-request-editor>
     `;
   }
