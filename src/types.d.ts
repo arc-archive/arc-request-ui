@@ -51,4 +51,8 @@ export declare interface AddRequestOptions {
    * When set it will not call the `requestUpdate()`
    */
   skipUpdate?: boolean;
+  /**
+   * When set it ignores call to store workspace data in the store.
+   */
+  skipStore?: boolean;
 }

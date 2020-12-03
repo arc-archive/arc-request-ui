@@ -19,7 +19,7 @@
   },
   "include": [
     "**/*.js",
-    "node_modules/@open-wc/**/*.js", "src/RequestMetaDetailsElement.d.ts", "src/RequestMetaEditorElement.d.ts", "index.d.ts", "arc-request-editor.d.ts", "arc-request-config.d.ts", "src/ArcRequestEditorElement.d.ts", "src/ArcRequestPanelElement.d.ts", "src/ArcRequestConfigElement.d.ts", "arc-request-workspace.d.ts"
+    "node_modules/@open-wc/**/*.js", "src/RequestMetaDetailsElement.d.ts", "src/RequestMetaEditorElement.d.ts", "index.d.ts", "arc-request-editor.d.ts", "arc-request-config.d.ts", "src/ArcRequestEditorElement.d.ts", "src/ArcRequestPanelElement.d.ts", "src/ArcRequestConfigElement.d.ts", "arc-request-workspace.d.ts", "workspace-tabs.d.ts", "workspace-tab.d.ts", "src/WorkspaceTabs.d.ts", "src/WorkspaceTab.d.ts"
   ],
   "exclude": [
     "node_modules/!(@open-wc)"

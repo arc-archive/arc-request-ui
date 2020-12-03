@@ -21,27 +21,46 @@ arc-request-panel {
   flex: 1;
 }
 
-anypoint-tab {
-  text-transform: none;
-  font-size: 0.94rem;
-}
-
-anypoint-tab arc-icon {
-  width: 12px;
-  height: 12px;
+.tabs {
+  --anypoint-icon-button-emphasis-low-color: var(--workspace-tabs-add-color, #000);
+  --anypoint-icon-button-emphasis-low-hover-background-color: var(--workspace-tabs-add-color-hover-background-color, rgba(0,0,0,0.08));
+  --anypoint-icon-button-emphasis-low-focus-background-color: var(--workspace-tabs-add-color-focus-background-color, rgba(0,0,0,0.14));
 }
 
 .add-request-button {
   width: 40px;
   height: 40px;
+  min-width: 40px;
 }
 
 .tab-name {
   display: block;
   max-width: 200px;
+  min-width: 20px;
+  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  direction: rtl;
+  /* direction: rtl; */
+}
+
+.tab-divider {
+  width: 1px;
+  min-width: 1px;
+  height: 24px;
+  background-color: #e5e5e5;
+  display: inline-flex;
+}
+
+.close-icon {
+  color: var(--arc-request-workspace-tabs-close-color, rgba(0, 0, 0, 0.78));
+  border-radius: 50%;
+  width: 14px !important;
+  height: 14px !important;
+}
+
+.close-icon:hover {
+  color: var(--arc-request-workspace-tabs-close-color-hover, rgba(255, 255, 255, 0.54));
+  background-color: var(--arc-request-workspace-tabs-close-background-color-hover, #FF8A65);
 }
 `;

@@ -1,15 +1,18 @@
 /* eslint-disable class-methods-use-this */
 import { LitElement, html } from 'lit-element';
+import { classMap } from 'lit-html/directives/class-map.js';
 import { ArcResizableMixin } from '@advanced-rest-client/arc-resizable-mixin';
 import { EventsTargetMixin } from '@advanced-rest-client/events-target-mixin';
 import { v4 } from '@advanced-rest-client/uuid-generator';
 import { WorkspaceEvents } from '@advanced-rest-client/arc-events';
-import '@anypoint-web-components/anypoint-tabs/anypoint-tabs.js';
-import '@anypoint-web-components/anypoint-tabs/anypoint-tab.js';
+// import '@anypoint-web-components/anypoint-tabs/anypoint-tabs.js';
+// import '@anypoint-web-components/anypoint-tabs/anypoint-tab.js';
 import '@anypoint-web-components/anypoint-button/anypoint-icon-button.js';
 import '@advanced-rest-client/arc-icons/arc-icon.js';
 import elementStyles from './styles/Workspace.js';
 import '../arc-request-panel.js';
+import '../workspace-tab.js'
+import '../workspace-tabs.js'
 
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ArcBaseRequest} ArcBaseRequest */
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ARCSavedRequest} ARCSavedRequest */
@@ -40,6 +43,11 @@ export const tabDragEndHandler = Symbol('tabDragEndHandler');
 export const reorderInfo = Symbol('reorderInfo');
 export const workspaceValue = Symbol('workspaceValue');
 export const restoreRequests = Symbol('restoreRequests');
+export const readTabLabel = Symbol('readTabLabel');
+export const storeWorkspace = Symbol('storeWorkspace');
+export const storeTimeoutValue = Symbol('storeTimeoutValue');
+export const syncWorkspaceRequests = Symbol('syncWorkspaceRequests');
+export const addNewHandler = Symbol('addNewHandler');
 
 export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMixin(LitElement)) {
   static get styles() {
@@ -71,6 +79,11 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
        * When set it requests workspace state read when connected to the DOM.
        */
       autoRead: { type: Boolean },
+      /** 
+       * A timeout after which the actual store workspace event is dispatched.
+       * Default to 500 (ms).
+       */
+      storeTimeout: { type: Number },
     };
   }
 
@@ -78,6 +91,7 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     super();
     /**  
      * @type {WorkspaceTab[]}
+     * Mote, tabs are in sync with workspace requests array
      */
     this[tabsValue] = [];
     /** 
@@ -106,6 +120,7 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
      */
     this.backendId = undefined;
     this.autoRead = false;
+    this.storeTimeout = 500;
   }
 
   connectedCallback() {
@@ -142,8 +157,33 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
    * Dispatches an event to store the current workspace.
    */
   async store() {
+    if (this[storeTimeoutValue]) {
+      clearTimeout(this[storeTimeoutValue]);
+    }
+    this[storeTimeoutValue] = setTimeout(() => this[storeWorkspace](), this.storeTimeout);
+  }
+
+  async [storeWorkspace]() {
+    this[storeTimeoutValue] = undefined;
+    this[syncWorkspaceRequests]();
     const workspace = this[workspaceValue];
     await WorkspaceEvents.write(this, workspace, this.backendId);
+  }
+
+  /**
+   * A function that updates workspace requests array to reflect the current order and properties of the panels.
+   */
+  [syncWorkspaceRequests]() {
+    const result = [];
+    const tabs = this[tabsValue];
+    const requests = this[requestsValue];
+    tabs.forEach((tab) => {
+      const request = requests.find((item) => item.tab === tab.id);
+      if (request) {
+        result.push(request.request)
+      }
+    });
+    this[workspaceValue].requests = result;
   }
 
   /**
@@ -167,7 +207,7 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
       this.addEmpty();
       return;
     }
-    requests.forEach((request) => this.add(request, { noAutoSelect: true, skipPositionCheck: true, skipUpdate: true, }));
+    requests.forEach((request) => this.add(request, { noAutoSelect: true, skipPositionCheck: true, skipUpdate: true, skipStore: true,}));
   }
 
   /**
@@ -199,6 +239,9 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     }
     if (!options.skipUpdate) {
       this.requestUpdate();
+    }
+    if (!options.skipStore) {
+      this.store();
     }
     return index;
   }
@@ -241,6 +284,9 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     if (!options.noAutoSelect) {
       this.selectByTabId(tab.id);
     }
+    if (!options.skipStore) {
+      this.store();
+    }
     return length - 1;
   }
   
@@ -262,6 +308,7 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
       requests.splice(requestIndex, 1);
     }
     this.requestUpdate();
+    this.store();
     if (ignoreSelection) {
       return;
     }
@@ -281,6 +328,8 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     if (!tabs.length) {
       requestAnimationFrame(() => this.addEmpty());
     }
+    this[workspaceValue].selected = this.selected;
+    this.store();
   }
 
   /**
@@ -305,6 +354,8 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     const tabIndex = this[tabsValue].findIndex((item) => item.id === id);
     if (this.selected !== tabIndex) {
       this.selected = tabIndex;
+      this[workspaceValue].selected = this.selected;
+      this.store();
     }
   }
 
@@ -328,7 +379,7 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
    */
   [createTab](request) {
     const typed = /** @type ARCSavedRequest */ (request);
-    const label = typed.name || typed.url || 'New request';
+    const label = this[readTabLabel](typed);
     return {
       id: v4(),
       label,
@@ -348,7 +399,21 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
       return;
     }
     const typed = /** @type ARCSavedRequest */ (request);
-    tab.label = typed.name || typed.url || 'New request';
+    tab.label = this[readTabLabel](typed);
+  }
+
+  /**
+   * @param {ARCSavedRequest} request
+   * @returns {string} The label for the tab for a given request.
+   */
+  [readTabLabel](request) {
+    if (request.name) {
+      return request.name;
+    }
+    if (request.url && request.url !== 'http://' && request.url.length > 6) {
+      return request.url;
+    }
+    return 'New request';
   }
 
   /**
@@ -358,6 +423,8 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     this[tabsValue] = [];
     this[requestsValue] = /** @type WorkspaceRequest[] */ ([]);
     this.selected = undefined;
+    this[workspaceValue].selected = undefined;
+    this.store();
   }
 
   /**
@@ -379,9 +446,13 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
    * The handler for the tabs selection change event
    * @param {Event} e
    */
-  [tabsSelectionHandler](e) {
+  async [tabsSelectionHandler](e) {
     const node = /** @type AnypointTabs */ (e.target);
     this.selected = Number(node.selected);
+    this[workspaceValue].selected = this.selected;
+    this.store();
+    await this.updateComplete;
+    this.notifyResize();
   }
 
   [requestChangeHandler](e) {
@@ -389,9 +460,11 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     const request = panel.editorRequest;
     const tabId = panel.dataset.tab;
     const index = Number(panel.dataset.index);
+    this[requestsValue][index].id = request.id;
     this[requestsValue][index].request = request.request;
     this[updateTab](tabId, request.request);
     this.requestUpdate();
+    this.store();
   }
 
   /**
@@ -445,6 +518,11 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
   //   }
   // }
 
+  [addNewHandler](e) {
+    this.addEmpty();
+    e.currentTarget.blur();
+  }
+
   render() {
     return html`
     ${this[tabsTemplate]()}
@@ -456,28 +534,26 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
    * @returns {TemplateResult} The template for the tabs list
    */
   [tabsTemplate]() {
-    const { compatibility, selected } = this;
+    const { selected } = this;
     const items = this[tabsValue];
     return html`
-    <anypoint-tabs
-      ?compatibility="${compatibility}"
-      .selected="${selected}"
-      @selected="${this[tabsSelectionHandler]}"
-      scrollable
-      disableDrag
+    <workspace-tabs
       class="tabs"
       id="tabs"
+      .selected="${selected}"
+      @selected="${this[tabsSelectionHandler]}"
     >
       ${items.map((item, index) => this[tabTemplate](item, index))}
       <anypoint-icon-button
         class="add-request-button"
-        @click="${this.addEmpty}"
-        title="Add new request editor"
+        @click="${this[addNewHandler]}"
+        title="Add a new request to the workspace"
         aria-label="Activate to add new request"
+        slot="suffix"
       >
         <arc-icon icon="add"></arc-icon>
       </anypoint-icon-button>
-    </anypoint-tabs>`;
+    </workspace-tabs>`;
   }
 
   /**
@@ -486,19 +562,26 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
    * @returns {TemplateResult} The template for the rendered request panel tab.
    */
   [tabTemplate](item, index) {
-    const { compatibility } = this;
+    // const { selected } = this;
+    // const isSelected = selected === index;
+    const classes = {
+      // selected: isSelected,
+      tab: true
+    };
     return html`
-    <anypoint-tab
+    <workspace-tab
       data-index="${index}"
-      ?compatibility="${compatibility}"
       draggable="true"
+      class=${classMap(classes)}
       @dragstart="${this[tabDragStartHandler]}"
       @dragend="${this[tabDragEndHandler]}"
     >
       <span class="tab-name">${item.label}</span>
       <arc-icon class="close-icon" data-index="${index}" icon="close" @click="${this[closeRequestHandler]}"></arc-icon>
-    </anypoint-tab>
+    </workspace-tab>
+    <div class="tab-divider"></div>
     `;
+    // ${isSelected ? '' : html`<div class="tab-divider"></div>`}
   }
 
   /**

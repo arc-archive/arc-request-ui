@@ -16,7 +16,7 @@ import '@advanced-rest-client/client-certificates/certificate-import.js';
 import '@advanced-rest-client/arc-ie/arc-data-export.js';
 import { RequestFactory, ModulesRegistry, RequestAuthorization, ResponseAuthorization, ArcFetchRequest } from '@advanced-rest-client/request-engine';
 import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
-import { ImportEvents, ArcNavigationEventTypes, TransportEventTypes, TransportEvents, DataExportEventTypes, GoogleDriveEventTypes } from '@advanced-rest-client/arc-events';
+import { ImportEvents, ArcNavigationEventTypes, TransportEventTypes, TransportEvents, DataExportEventTypes, GoogleDriveEventTypes, WorkspaceEventTypes } from '@advanced-rest-client/arc-events';
 import { ArcModelEvents } from '@advanced-rest-client/arc-models';
 import { MonacoLoader } from '@advanced-rest-client/monaco-support';
 import jexl from '../web_modules/jexl/dist/Jexl.js';
@@ -29,6 +29,9 @@ import '../arc-request-workspace.js';
 /** @typedef {import('@advanced-rest-client/arc-models').ARCRequestDeletedEvent} ARCRequestDeletedEvent */
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ArcEditorRequest} ArcEditorRequest */
 /** @typedef {import('@advanced-rest-client/arc-events').ArcExportFilesystemEvent} ArcExportFilesystemEvent */
+/** @typedef {import('@advanced-rest-client/arc-events').WorkspaceReadEvent} WorkspaceReadEvent */
+/** @typedef {import('@advanced-rest-client/arc-events').WorkspaceWriteEvent} WorkspaceWriteEvent */
+/** @typedef {import('@advanced-rest-client/arc-types').Workspace.DomainWorkspace} DomainWorkspace */
 
 ModulesRegistry.register(ModulesRegistry.request, '@advanced-rest-client/request-engine/request/request-authorization', RequestAuthorization, ['storage']);
 ModulesRegistry.register(ModulesRegistry.response, '@advanced-rest-client/request-engine/response/request-authorization', ResponseAuthorization, ['storage', 'events']);
@@ -41,13 +44,15 @@ class ComponentDemo extends DemoPage {
     super();
     this.initObservableProperties([
       'withMenu', 'initialized', 'importingCertificate',
-      'exportSheetOpened', 'exportFile', 'exportData'
+      'exportSheetOpened', 'exportFile', 'exportData',
+      'workspaceId'
     ]);
     this.componentName = 'ARC request workspace';
     this.compatibility = false;
     this.withMenu = false;
     this.initialized = false;
     this.importingCertificate = false;
+    this.workspaceId = 'default';
     
     this.generator = new DataGenerator();
     this.oauth2RedirectUri = 'http://auth.advancedrestclient.com/arc.html';
@@ -66,6 +71,8 @@ class ComponentDemo extends DemoPage {
     window.addEventListener(TransportEventTypes.transport, this.transportRequest.bind(this));
     window.addEventListener(DataExportEventTypes.fileSave, this._fileExportHandler.bind(this));
     window.addEventListener(GoogleDriveEventTypes.save, this._fileExportHandler.bind(this));
+    window.addEventListener(WorkspaceEventTypes.read, this._workspaceReadHandler.bind(this));
+    window.addEventListener(WorkspaceEventTypes.write, this._workspaceWriteHandler.bind(this));
     
     this.initEditors();
     listenEncoding();
@@ -96,6 +103,58 @@ class ComponentDemo extends DemoPage {
     await this.generator.destroySavedRequestData();
     await this.generator.destroyHistoryData();
     ArcModelEvents.destroyed(document.body, 'all');
+  }
+
+  /**
+   * @param {WorkspaceReadEvent} e 
+   */
+  _workspaceReadHandler(e) {
+    const { id } = e.detail;
+    e.detail.result = this.readWorkspaceState(id);
+  }
+
+  /**
+   * @param {WorkspaceWriteEvent} e 
+   */
+  _workspaceWriteHandler(e) {
+    const { id, contents } = e.detail;
+    e.detail.result = this.writeWorkspaceState(contents, id);
+  }
+
+  getWorkspaceKey(id) {
+    return ['demo', 'arc-request-ui', 'workspace', id].join('.');
+  }
+
+  /**
+   * Mimics ARC's reading workspace file.
+   * @param {string} [id='default'] The id of the workspace
+   * @returns {Promise<DomainWorkspace>}
+   */
+  async readWorkspaceState(id='default') {
+    const key = this.getWorkspaceKey(id);
+    const raw = localStorage.getItem(key);
+    let result = /** @type DomainWorkspace */ (null);
+    try {
+      const data = JSON.parse(raw);
+      if (data && data.kind === 'ARC#DomainWorkspace') {
+        result = data;
+      }
+    } catch (e) {
+      // ...
+    }
+    return result;
+  }
+
+  /**
+   * Writes workspace data to the store.
+   * @param {DomainWorkspace} data
+   * @param {string} [id='default']
+   * @returns {Promise<void>}
+   */
+  async writeWorkspaceState(data, id='default') {
+    const key = this.getWorkspaceKey(id);
+    const raw = JSON.stringify(data);
+    localStorage.setItem(key, raw);
   }
 
   /**
@@ -206,6 +265,7 @@ class ComponentDemo extends DemoPage {
       compatibility,
       withMenu,
       oauth2RedirectUri,
+      workspaceId,
     } = this;
     return html`
     <section class="documentation-section">
@@ -218,6 +278,8 @@ class ComponentDemo extends DemoPage {
         <arc-request-workspace
           ?compatibility="${compatibility}"
           .oauth2RedirectUri="${oauth2RedirectUri}"
+          backendId="${workspaceId}"
+          autoRead
         ></arc-request-workspace>
       </div>
     </section>

@@ -191,9 +191,9 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
    */
   _attachListeners(node) {
     super._attachListeners(node);
-    node.addEventListener(TransportEventTypes.request, this[requestTransportHandler]);
-    node.addEventListener(TransportEventTypes.response, this[responseTransportHandler]);
-    node.addEventListener(ArcModelEventTypes.Request.State.delete, this[requestDeletedHandler]);
+    window.addEventListener(TransportEventTypes.request, this[requestTransportHandler]);
+    window.addEventListener(TransportEventTypes.response, this[responseTransportHandler]);
+    window.addEventListener(ArcModelEventTypes.Request.State.delete, this[requestDeletedHandler]);
     this.addEventListener('keydown', this[keydownHandler]);
   }
 
@@ -202,9 +202,9 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
    */
   _detachListeners(node) {
     super._detachListeners(node);
-    node.removeEventListener(TransportEventTypes.request, this[requestTransportHandler]);
-    node.removeEventListener(TransportEventTypes.response, this[responseTransportHandler]);
-    node.removeEventListener(ArcModelEventTypes.Request.State.delete, this[requestDeletedHandler]);
+    window.removeEventListener(TransportEventTypes.request, this[requestTransportHandler]);
+    window.removeEventListener(TransportEventTypes.response, this[responseTransportHandler]);
+    window.removeEventListener(ArcModelEventTypes.Request.State.delete, this[requestDeletedHandler]);
     this.removeEventListener('keydown', this[keydownHandler]);
   }
 
