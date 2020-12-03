@@ -5,6 +5,7 @@ import { ArcResizableMixin } from '@advanced-rest-client/arc-resizable-mixin';
 import { EventsTargetMixin } from '@advanced-rest-client/events-target-mixin';
 import { v4 } from '@advanced-rest-client/uuid-generator';
 import { WorkspaceEvents } from '@advanced-rest-client/arc-events';
+import { ArcModelEvents } from '@advanced-rest-client/arc-models';
 // import '@anypoint-web-components/anypoint-tabs/anypoint-tabs.js';
 // import '@anypoint-web-components/anypoint-tabs/anypoint-tab.js';
 import '@anypoint-web-components/anypoint-button/anypoint-icon-button.js';
@@ -291,6 +292,80 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     }
     return length - 1;
   }
+
+  /**
+   * Appends request by its datastore id.
+   * @param {string} type Request type: `saved` or `history`.
+   * @param {string} id The data store id
+   * @returns {Promise<number>} The position at which the request has been added.
+   */
+  async addByRequestId(type, id) {
+    const request = await ArcModelEvents.Request.read(this, type, id);
+    const index = this.findRequestIndex(request._id);
+    if (index === -1) {
+      return this.add(request);
+    }
+    const tab = this[tabsValue][index];
+    const existing = this[requestsValue].find((item) => item.tab === tab.id);
+    existing.request = request;
+    const typed = /** @type ARCSavedRequest */ (request);
+    tab.label = this[readTabLabel](typed);
+    this.requestUpdate();
+    this.store();
+    return index;
+  }
+
+  /**
+   * Appends requests by their datastore id.
+   * @param {string} type Request type: `saved` or `history`.
+   * @param {string[]} ids The data store id
+   * @returns {Promise<number>} The position at which the last request has been added.
+   */
+  async addByRequestIds(type, ids) {
+    const requests = await ArcModelEvents.Request.readBulk(this, type, ids);
+    let result = -1;
+    requests.forEach((request) => {
+      const index = this.findRequestIndex(request._id);
+      if (index === -1) {
+        result = this.add(request, { noAutoSelect: true, skipPositionCheck: true, skipStore: true, skipUpdate: true });
+      } else {
+        const tab = this[tabsValue][index];
+        const existing = this[requestsValue].find((item) => item.tab === tab.id);
+        existing.request = request;
+        const typed = /** @type ARCSavedRequest */ (request);
+        tab.label = this[readTabLabel](typed);
+        result = index;
+      }
+    });
+    
+    this.selected = result;
+    this[workspaceValue].selected = this.selected;
+    this.requestUpdate();
+    this.store();
+    return result;
+  }
+
+  /**
+   * Replaces current workspace with the request passed in the argument.
+   * @param {string} type A request type. `history` or `saved`
+   * @param {string} id Request id 
+   * @return {Promise<number>}
+   */
+  replaceByRequestId(type, id) {
+    this.clear();
+    return this.addByRequestId(type, id);
+  }
+
+  /**
+   * Replaces current workspace with requests passed in the argument.
+   * @param {string} type A request type. `history` or `saved`
+   * @param {string[]} ids Request ids 
+   * @return {Promise<number>}
+   */
+  replaceByRequestIds(type, ids) {
+    this.clear();
+    return this.addByRequestIds(type, ids);
+  }
   
   /**
    * Removes a request for given index in the tabs array.
@@ -383,6 +458,25 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     this.add(copy, {
       skipPositionCheck: true,
     });
+  }
+
+  /**
+   * Finds requests index in the tabs array by its data store id.
+   * This does not find not saved requests.
+   *
+   * @param {string} requestId The data store id of the request
+   * @return {number} Request index or -1 if not found.
+   */
+  findRequestIndex(requestId) {
+    if (!requestId) {
+      return -1;
+    }
+    const requests = this[requestsValue];
+    const item = requests.find((request) => request._id === requestId);
+    if (!item) {
+      return -1;
+    }
+    return this[tabsValue].findIndex((tab) => tab.id === item.tab);
   }
 
   /**
