@@ -1,7 +1,7 @@
 import { LitElement, html } from 'lit-element';
 import elementStyles from './styles/Tab.js';
 
-export class WorkspaceTab extends LitElement {
+export class WorkspaceTabElement extends LitElement {
   static get styles() {
     return elementStyles;
   }

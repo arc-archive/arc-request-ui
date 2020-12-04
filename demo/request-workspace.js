@@ -4,9 +4,11 @@ import '@anypoint-web-components/anypoint-button/anypoint-button.js';
 import '@anypoint-web-components/anypoint-checkbox/anypoint-checkbox.js';
 import '@advanced-rest-client/arc-menu/saved-menu.js';
 import '@advanced-rest-client/arc-menu/history-menu.js';
+import '@advanced-rest-client/arc-menu/projects-menu.js';
 import '@advanced-rest-client/arc-models/request-model.js';
 import '@advanced-rest-client/arc-models/project-model.js';
 import '@advanced-rest-client/arc-models/url-history-model.js';
+import '@advanced-rest-client/arc-models/history-data-model.js';
 import '@advanced-rest-client/arc-models/client-certificate-model.js';
 import '@advanced-rest-client/arc-models/variables-model.js';
 import '@advanced-rest-client/arc-models/auth-data-model.js';
@@ -16,7 +18,7 @@ import '@advanced-rest-client/client-certificates/certificate-import.js';
 import '@advanced-rest-client/arc-ie/arc-data-export.js';
 import { RequestFactory, ModulesRegistry, RequestAuthorization, ResponseAuthorization, ArcFetchRequest } from '@advanced-rest-client/request-engine';
 import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
-import { ImportEvents, ArcNavigationEventTypes, TransportEventTypes, TransportEvents, DataExportEventTypes, GoogleDriveEventTypes, WorkspaceEventTypes } from '@advanced-rest-client/arc-events';
+import { ImportEvents, ArcNavigationEventTypes, TransportEventTypes, TransportEvents, DataExportEventTypes, GoogleDriveEventTypes, WorkspaceEventTypes, ProjectActions } from '@advanced-rest-client/arc-events';
 import { ArcModelEvents } from '@advanced-rest-client/arc-models';
 import { MonacoLoader } from '@advanced-rest-client/monaco-support';
 import jexl from '../web_modules/jexl/dist/Jexl.js';
@@ -40,6 +42,10 @@ ModulesRegistry.register(ModulesRegistry.response, '@advanced-rest-client/reques
 // const WORKSPACE_STORE_KEY = 'demo.arc-request-ui.workspace';
 
 class ComponentDemo extends DemoPage {
+  get workspace() {
+    return document.querySelector('arc-request-workspace');
+  }
+
   constructor() {
     super();
     this.initObservableProperties([
@@ -66,6 +72,7 @@ class ComponentDemo extends DemoPage {
     window.addEventListener(DataExportEventTypes.fileSave, this.fileSaveHandler.bind(this))
     window.addEventListener(ArcNavigationEventTypes.navigateRequest, this.navigateRequestHandler.bind(this));
     window.addEventListener(ArcNavigationEventTypes.navigate, this.navigateHandler.bind(this));
+    window.addEventListener(ArcNavigationEventTypes.navigateProject, this.navigateProjectHandler.bind(this));
     window.addEventListener(TransportEventTypes.request, this.makeRequest.bind(this));
     window.addEventListener(TransportEventTypes.abort, this.abortRequest.bind(this));
     window.addEventListener(TransportEventTypes.transport, this.transportRequest.bind(this));
@@ -161,7 +168,26 @@ class ComponentDemo extends DemoPage {
    * @param {ARCRequestNavigationEvent} e 
    */
   navigateRequestHandler(e) {
-    console.log('Navigate request', e.requestId, e.requestType, e.route, e.action);
+    const { requestId, requestType, action } = e;
+    if (action !== 'open') {
+      return;
+    }
+    this.workspace.addByRequestId(requestType, requestId);
+  }
+
+  /**
+   * @param {ARCProjectNavigationEvent} e
+   */
+  navigateProjectHandler(e) {
+    const { id, action, route } = e;
+    if (route !== 'project') {
+      return;
+    }
+    if (action === ProjectActions.addWorkspace) {
+      this.workspace.appendByProjectId(id);
+    } else if (action === ProjectActions.replaceWorkspace) {
+      this.workspace.replaceByProjectId(id);
+    }
   }
 
   navigateHandler(e) {
@@ -271,8 +297,9 @@ class ComponentDemo extends DemoPage {
     <section class="documentation-section">
       <div class="demo-app">
         ${withMenu ? html`<nav>
-          <saved-menu ?compatibility="${compatibility}"></saved-menu>
-          <history-menu ?compatibility="${compatibility}"></history-menu>
+          <saved-menu ?compatibility="${compatibility}" draggableEnabled></saved-menu>
+          <history-menu ?compatibility="${compatibility}" draggableEnabled></history-menu>
+          <projects-menu ?compatibility="${compatibility}" draggableEnabled></projects-menu>
         </nav>` : ''}
         
         <arc-request-workspace
@@ -337,6 +364,7 @@ class ComponentDemo extends DemoPage {
       <project-model></project-model>
       <request-model></request-model>
       <url-history-model></url-history-model>
+      <history-data-model></history-data-model>
       <client-certificate-model></client-certificate-model>
       <variables-model></variables-model>
       <auth-data-model></auth-data-model>

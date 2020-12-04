@@ -203,7 +203,19 @@ export declare class ArcRequestPanelElement extends EventsTargetMixin(ArcResizab
    */
   [storeRequestHandler](): void;
 
+  /**
+   * Initializes the save request flow.
+   * If the request is already stored in the data store then it is automatically saved.
+   * Otherwise a save dialog is rendered,
+   */
+  saveAction(): void;
+
   [storeAsRequestHandler](): void;
+
+  /**
+   * Triggers the UI to save the current request as a new request, regardless of the current state.
+   */
+  saveAsAction(): void;
 
   /**
    * Handler for the event dispatched by the meta editor indicating that the request has changed.

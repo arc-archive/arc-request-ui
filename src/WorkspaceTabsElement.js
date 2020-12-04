@@ -5,7 +5,7 @@ import elementStyles from './styles/Tabs.js';
 export const itemsChangeHandler = Symbol('itemsChangeHandler');
 export const keyDownHandler = Symbol('keyDownHandler');
 
-export class WorkspaceTabs extends SelectableMixin(LitElement) {
+export class WorkspaceTabsElement extends SelectableMixin(LitElement) {
   static get styles() {
     return elementStyles;
   }

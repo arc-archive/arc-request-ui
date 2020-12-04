@@ -15,6 +15,7 @@ export default css`
   flex: 1;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 arc-request-panel {
@@ -62,5 +63,19 @@ arc-request-panel {
 .close-icon:hover {
   color: var(--arc-request-workspace-tabs-close-color-hover, rgba(255, 255, 255, 0.54));
   background-color: var(--arc-request-workspace-tabs-close-background-color-hover, #FF8A65);
+}
+
+.drop-pointer {
+  position: absolute;
+  left: 4px;
+  color: #757575;
+  width: 20px;
+  height: 24px;
+  font-size: 20px;
+  top: 36px;
+}
+
+.drop-pointer::before {
+  content: "⇧";
 }
 `;

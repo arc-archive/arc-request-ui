@@ -419,6 +419,15 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
    * dispatches the event to store the request or opens meta editor.
    */
   [storeRequestHandler]() {
+    this.saveAction();
+  }
+
+  /**
+   * Initializes the save request flow.
+   * If the request is already stored in the data store then it is automatically saved.
+   * Otherwise a save dialog is rendered,
+   */
+  saveAction() {
     const { editorRequest } = this;
     const typed = /** @type ARCSavedRequest */ (editorRequest.request);
     if (!typed._id || !typed._rev || !typed.type) {
@@ -429,6 +438,13 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
   }
 
   [storeAsRequestHandler]() {
+    this.saveAsAction();
+  }
+
+  /**
+   * Triggers the UI to save the current request as a new request, regardless of the current state.
+   */
+  saveAsAction() {
     this.requestMetaOpened = true;
     const editor = this.shadowRoot.querySelector('request-meta-editor');
     editor.saveAs = true;

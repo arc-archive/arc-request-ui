@@ -1,7 +1,7 @@
-import { WorkspaceTabs } from './src/WorkspaceTabs';
+import { WorkspaceTabsElement } from './src/WorkspaceTabsElement';
 
 declare global {
   interface HTMLElementTagNameMap {
-    "workspace-tabs": WorkspaceTabs;
+    "workspace-tabs": WorkspaceTabsElement;
   }
 }

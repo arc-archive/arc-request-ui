@@ -1,3 +1,3 @@
-import { WorkspaceTabs } from './src/WorkspaceTabs.js'
+import { WorkspaceTabsElement } from './src/WorkspaceTabsElement.js'
 
-window.customElements.define('workspace-tabs', WorkspaceTabs);
+window.customElements.define('workspace-tabs', WorkspaceTabsElement);

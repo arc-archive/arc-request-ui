@@ -9,6 +9,7 @@ export default css`
 :host(.stacked) {
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 :host(.stacked) .panel {

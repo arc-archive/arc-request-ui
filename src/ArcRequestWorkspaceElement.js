@@ -1,3 +1,4 @@
+/* eslint-disable no-param-reassign */
 /* eslint-disable class-methods-use-this */
 import { LitElement, html } from 'lit-element';
 import { classMap } from 'lit-html/directives/class-map.js';
@@ -6,8 +7,7 @@ import { EventsTargetMixin } from '@advanced-rest-client/events-target-mixin';
 import { v4 } from '@advanced-rest-client/uuid-generator';
 import { WorkspaceEvents } from '@advanced-rest-client/arc-events';
 import { ArcModelEvents } from '@advanced-rest-client/arc-models';
-// import '@anypoint-web-components/anypoint-tabs/anypoint-tabs.js';
-// import '@anypoint-web-components/anypoint-tabs/anypoint-tab.js';
+import { BodyProcessor } from '@advanced-rest-client/body-editor';
 import '@anypoint-web-components/anypoint-button/anypoint-icon-button.js';
 import '@advanced-rest-client/arc-icons/arc-icon.js';
 import elementStyles from './styles/Workspace.js';
@@ -19,13 +19,14 @@ import '../workspace-tabs.js'
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ARCSavedRequest} ARCSavedRequest */
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ARCHistoryRequest} ARCHistoryRequest */
 /** @typedef {import('@advanced-rest-client/arc-types').Workspace.DomainWorkspace} DomainWorkspace */
-/** @typedef {import('@anypoint-web-components/anypoint-tabs').AnypointTabs} AnypointTabs */
-/** @typedef {import('@anypoint-web-components/anypoint-tabs').AnypointTab} AnypointTab *
+/** @typedef {import('@advanced-rest-client/arc-types').DataExport.ArcExportObject} ArcExportObject */
 /** @typedef {import('lit-element').TemplateResult} TemplateResult */
 /** @typedef {import('./types').WorkspaceTab} WorkspaceTab */
 /** @typedef {import('./types').AddRequestOptions} AddRequestOptions */
 /** @typedef {import('./types').WorkspaceRequest} WorkspaceRequest */
 /** @typedef {import('./ArcRequestPanelElement').ArcRequestPanelElement} ArcRequestPanelElement */
+/** @typedef {import('./WorkspaceTabsElement').WorkspaceTabsElement} WorkspaceTabsElement */
+/** @typedef {import('./WorkspaceTabElement').WorkspaceTabElement} WorkspaceTabElement */
 
 export const addTab = Symbol('addTab');
 export const createTab = Symbol('createTab');
@@ -51,6 +52,22 @@ export const syncWorkspaceRequests = Symbol('syncWorkspaceRequests');
 export const addNewHandler = Symbol('addNewHandler');
 export const panelCloseHandler = Symbol('panelCloseHandler');
 export const panelDuplicateHandler = Symbol('panelDuplicateHandler');
+export const tabsDragOverHandler = Symbol('tabsDragOverHandler');
+export const tabsDragLeaveHandler = Symbol('tabsDragLeaveHandler');
+export const tabsDropHandler = Symbol('tabsDropHandler');
+export const resetReorderState = Symbol('resetReorderState');
+export const rearrangeReorder = Symbol('rearrangeReorder');
+export const reorderDragover = Symbol('reorderDragover');
+export const getReorderDdx = Symbol('getReorderDdx');
+export const getReorderedItem = Symbol('getReorderedItem');
+export const updateTabsReorder = Symbol('updateTabsReorder');
+export const createDropPointer = Symbol('createDropPointer');
+export const removeDropPointer = Symbol('removeDropPointer');
+export const dropPointerReference = Symbol('dropPointerReference');
+export const dropPointer = Symbol('dropPointer');
+export const newTabDragover = Symbol('newTabDragover');
+export const resetReorderChildren = Symbol('resetReorderChildren');
+export const computeDropOrder = Symbol('computeDropOrder');
 
 export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMixin(LitElement)) {
   static get styles() {
@@ -144,6 +161,9 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
       if (!result.id) {
         result.id = v4();
       }
+      if (Array.isArray(result.requests)) {
+        result.requests = result.requests.map((request) => BodyProcessor.restoreRequest(request));
+      }
       this[workspaceValue] = result;
     } else {
       this[workspaceValue] = /** @type DomainWorkspace */ ({
@@ -170,6 +190,9 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     this[storeTimeoutValue] = undefined;
     this[syncWorkspaceRequests]();
     const workspace = this[workspaceValue];
+    const ps = workspace.requests.map((request) => BodyProcessor.stringifyRequest(request));
+    const requests = await Promise.all(ps);
+    workspace.requests = requests;
     await WorkspaceEvents.write(this, workspace, this.backendId);
   }
 
@@ -294,6 +317,22 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
   }
 
   /**
+   * Adds a request at specific position moving the request at the position to the right.
+   * If the position is out of `activeRequests` bounds.
+   * 
+   * @param {number} index The position of the tab where to put the request
+   * @param {string} type The request type
+   * @param {string} id The request data store id
+   * @param {AddRequestOptions=} options Add request options
+   * 
+   * @returns {Promise<number>} The position at which the tab was inserted. It might be different than requested when the index is out of bounds.
+   */
+  async addAtByRequestId(index, type, id, options) {
+    const request = await ArcModelEvents.Request.read(this, type, id);
+    return this.addAt(index, request, options);
+  }
+
+  /**
    * Appends request by its datastore id.
    * @param {string} type Request type: `saved` or `history`.
    * @param {string} id The data store id
@@ -310,6 +349,8 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     existing.request = request;
     const typed = /** @type ARCSavedRequest */ (request);
     tab.label = this[readTabLabel](typed);
+    this.selected = index;
+    this[workspaceValue].selected = index;
     this.requestUpdate();
     this.store();
     return index;
@@ -365,6 +406,61 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
   replaceByRequestIds(type, ids) {
     this.clear();
     return this.addByRequestIds(type, ids);
+  }
+
+  /**
+   * @param {string} id The project id to append
+   * @param {number=} index The position at which to start appending the projects
+   * @returns {Promise<number>} the index of the last inserted item or -1 if none inserted.
+   */
+  async appendByProjectId(id, index) {
+    const project = await ArcModelEvents.Project.read(this, id);
+    if (!Array.isArray(project.requests) || !project.requests.length) {
+      return -1;
+    }
+    const requests = await ArcModelEvents.Request.readBulk(this, 'saved', project.requests, {
+      preserveOrder: true,
+    });
+    let lastIndex;
+    let hasIndex = typeof index === 'number';
+    const tabs = this[tabsValue];
+    if (hasIndex && index >= tabs.length) {
+      hasIndex = false;
+    }
+    const opts = {
+      skipPositionCheck: true,
+      noAutoSelect: true,
+      skipStore: true, 
+      skipUpdate: true,
+    };
+    requests.forEach((request, i) => {
+      if (!request) {
+        // request does not exist in the store anymore
+        return;
+      }
+      if (hasIndex) {
+        lastIndex = index + i;
+        this.addAt(lastIndex, request, opts);
+      } else {
+        lastIndex = this.add(request, opts);
+      }
+    });
+
+    this.selected = lastIndex;
+    this[workspaceValue].selected = this.selected;
+    this.requestUpdate();
+    this.store();
+    return lastIndex;
+  }
+
+  /**
+   * Replaces the current workspace with the project
+   * @param {string} id The project id in the data store
+   * @returns {Promise<number>} the index of the last inserted item or -1 if none inserted.
+   */
+  async replaceByProjectId(id) {
+    this.clear();
+    return this.appendByProjectId(id);
   }
   
   /**
@@ -472,11 +568,99 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
       return -1;
     }
     const requests = this[requestsValue];
-    const item = requests.find((request) => request._id === requestId);
+    const item = requests.find((request) => /** @type ARCSavedRequest */ (request.request)._id === requestId);
     if (!item) {
       return -1;
     }
     return this[tabsValue].findIndex((tab) => tab.id === item.tab);
+  }
+
+  /**
+   * @returns {ArcRequestPanelElement|undefined}
+   */
+  getActivePanel() {
+    const tab = this[tabsValue][this.selected];
+    if (!tab) {
+      return undefined;
+    }
+    const { id } = tab
+    return /** @type ArcRequestPanelElement */ (this.shadowRoot.querySelector(`arc-request-panel[data-tab="${id}"]`));
+  }
+
+  /**
+   * Runs the currently active tab.
+   */
+  sendCurrent() {
+    const panel = this.getActivePanel();
+    panel.send();
+  }
+  
+  /**
+   * Aborts the currently selected panel
+   */
+  abortCurrent() {
+    const panel = this.getActivePanel();
+    panel.abort();
+  }
+
+  /**
+   * Aborts the currently selected panel
+   */
+  clearCurrent() {
+    const panel = this.getActivePanel();
+    panel.clear();
+  }
+
+  /**
+   * Aborts all running requests
+   */
+  abortAll() {
+    const nodes = this.shadowRoot.querySelectorAll('arc-request-panel');
+    Array.from(nodes).forEach((panel) => {
+      if (panel.loading) {
+        panel.abort();
+      }
+    });
+  }
+
+  /**
+   * Appends Project/Saved/History export data directly to workspace.
+   * @param {ArcExportObject} detail Arc import object with normalized import structure.
+   */
+  appendImportRequests(detail) {
+    let requests;
+    switch (detail.kind) {
+      case 'ARC#ProjectExport':
+      case 'ARC#SavedExport':
+        requests = detail.requests;
+        break;
+      case 'ARC#HistoryExport':
+        requests = detail.history;
+        break;
+      default: 
+    }
+    if (!Array.isArray(requests) || !requests.length) {
+      return;
+    }
+    requests.forEach((item) => this.add(item));
+  }
+
+  /**
+   * Triggers the save current request flow.
+   */
+  saveOpened() {
+    const panel = this.getActivePanel();
+    panel.saveAction();
+  }
+
+  /**
+   * Closes currently selected tab.
+   */
+  closeActiveTab() {
+    const panel = this.getActivePanel();
+    const tabId = panel.dataset.tab;
+    const index = this[tabsValue].findIndex((tab) => tab.id === tabId);
+    this.removeRequest(index);
   }
 
   /**
@@ -567,7 +751,7 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
    * @param {Event} e
    */
   async [tabsSelectionHandler](e) {
-    const node = /** @type AnypointTabs */ (e.target);
+    const node = /** @type WorkspaceTabsElement */ (e.target);
     this.selected = Number(node.selected);
     this[workspaceValue].selected = this.selected;
     this.store();
@@ -591,7 +775,7 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
    * @param {DragEvent} e
    */
   [tabDragStartHandler](e) {
-    const node = /** @type AnypointTab */ (e.currentTarget);
+    const node = /** @type WorkspaceTabElement */ (e.currentTarget);
     const index = Number(node.dataset.index);
     if (Number.isNaN(index)) {
       return;
@@ -620,23 +804,306 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     }
     dt.setData('arc/request', '1');
     dt.setData('arc/source', this.localName);
-    dt.effectAllowed = 'copy';
+    dt.setData('arc-source/request-workspace', '1');
+    dt.effectAllowed = 'copyMove';
 
+    this[resetReorderState]()
+    this[reorderInfo].type = 'track';
+    this[reorderInfo].dragElement = node;
+    this[reorderInfo].dragIndex = index;
+    setTimeout(() => {
+      node.style.visibility = 'hidden';
+    });
+  }
+
+  /**
+   * @param {DragEvent} e
+   */
+  [tabDragEndHandler](e) {
+    if (!this[reorderInfo] || this[reorderInfo].type !== 'track') {
+      return;
+    }
+    const toIdx = this[rearrangeReorder]();
+    this[resetReorderChildren]();
+    if (typeof toIdx === 'number') {
+      this.selected = toIdx;
+      this[workspaceValue].selected = this.selected;
+      this.store();
+      this.notifyResize();
+    }
+    this[resetReorderState]();
+    const tab = /** @type WorkspaceTabElement */ (e.currentTarget);
+    tab.style.visibility = 'visible';
+  }
+
+  /**
+   * Resets state of the reorder info object.
+   */
+  [resetReorderState]() {
     this[reorderInfo] = {
-      type: 'track',
-      dragElement: node,
-      dragIndex: index,
+      type: 'start',
+      dragElement: undefined,
+      dragIndex: undefined,
+      overIndex: undefined,
+      moves: [],
     };
   }
 
-  // /**
-  //  * @param {DragEvent} e
-  //  */
-  // [tabDragEndHandler](e) {
-  //   if (this[reorderInfo] && this[reorderInfo].type === 'track') {
-  //     console.log('aaaaaaaaaaaaaaaaaaaaaaaaaa');
-  //   }
-  // }
+  /**
+   * Resets styles of anypoint-tabs that has been moved during reorder action.
+   */
+  [resetReorderChildren]() {
+    const children = this.shadowRoot.querySelectorAll('workspace-tab');
+    Array.from(children).forEach((tab) => {
+      tab.style.transform = '';
+      tab.classList.remove('moving');
+    });
+  }
+
+  /**
+   * Moves a tab to corresponding position when drag finishes.
+   * @return {number|undefined} Position where the request has been moved to.
+   */
+  [rearrangeReorder]() {
+    const info = this[reorderInfo];
+    const fromIdx = info.dragIndex;
+    let toIdx;
+    const items = this[tabsValue];
+    if (fromIdx >= 0 && info.overIndex >= 0) {
+      toIdx = info.overIndex;
+      const item = items.splice(fromIdx, 1)[0];
+      items.splice(toIdx, 0, item);
+    }
+    this[tabsValue] = items;
+    this.requestUpdate();
+    return toIdx;
+  }
+
+  /**
+   * @param {DragEvent} e
+   */
+  [tabsDragOverHandler](e) {
+    const dt = e.dataTransfer;
+    const types = [...dt.types];
+    if (!types.includes('arc/request') && !types.includes('arc/project')) {
+      return;
+    }
+    e.preventDefault();
+    if (types.includes('arc-source/request-workspace')) {
+      e.dataTransfer.dropEffect = 'move';
+      this[reorderDragover](e);
+    } else {
+      e.dataTransfer.dropEffect = 'copy';
+      this[newTabDragover](e);
+    }
+  }
+
+  /**
+   * The handler for `dragleave` event on this element. If the dragged item is 
+   * compatible then it hides the drop message.
+   * 
+   * @param {DragEvent} e
+   */
+  [tabsDragLeaveHandler](e) {
+    const dt = e.dataTransfer;
+    const types = [...dt.types];
+    if (!types.includes('arc/request') && !types.includes('arc/project')) {
+      return;
+    }
+    e.preventDefault();
+    this[removeDropPointer]();
+    this[dropPointerReference] = undefined;
+  }
+
+  /**
+   * @param {DragEvent} e
+   */
+  [tabsDropHandler](e) {
+    if (this[reorderInfo] && this[reorderInfo].type === 'track') {
+      // This is reorder drop
+      return;
+    }
+    const dt = e.dataTransfer;
+    const types = [...dt.types];
+    const isRequest = types.includes('arc/request');
+    const isProject = types.includes('arc/project');
+    if (!isRequest && !isProject) {
+      return;
+    }
+    e.preventDefault();
+    this[removeDropPointer]();
+    if (isRequest) {
+      const type = dt.getData('arc/type');
+      const id = dt.getData('arc/id');
+      if (e.ctrlKey || e.metaKey) {
+        this.clear();
+        this.addByRequestId(type, id);
+      } else {
+        const order = this[computeDropOrder]();
+        this.addAtByRequestId(order, type, id);
+      }
+    } else {
+      const id = dt.getData('arc/id');
+      if (e.ctrlKey || e.metaKey) {
+        this.replaceByProjectId(id);
+      } else {
+        const order = this[computeDropOrder]();
+        this.appendByProjectId(id, order);
+      }
+    }
+    this[dropPointerReference] = undefined;
+  }
+
+  /**
+   * Handles the `dragover` event when in reordering model flow.
+   * It updates tabs position and sets variables later used to compute new tab position.
+   * 
+   * @param {DragEvent} e
+   */
+  [reorderDragover](e) {
+    if (this[reorderInfo].type !== 'track') {
+      return;
+    }
+    this[reorderInfo].moves.push({ x: e.clientX, y: e.clientY });
+    const dragElement = this[getReorderedItem](e);
+    if (!dragElement) {
+      return;
+    }
+    const index = Number(dragElement.dataset.index);
+    const ddx = this[getReorderDdx]();
+    this[reorderInfo].dirOffset = ddx < 0 ? -1 : 0;
+    const lastOverIndex = this[reorderInfo].overIndex || 0;
+    const overIndex = index + this[reorderInfo].dirOffset;
+    const start = Math.max(overIndex < lastOverIndex ? overIndex : lastOverIndex, 0);
+    const end = index < lastOverIndex ? lastOverIndex : index;
+    const draggedIndex = this[reorderInfo].dragIndex;
+    this[updateTabsReorder](start, end, draggedIndex, overIndex);
+    this[reorderInfo].overIndex = index;
+  }
+
+  /**
+   * @returns {number} Delta of the last move compared to the previous move.
+   */
+  [getReorderDdx]() {
+    const secondLast = this[reorderInfo].moves[this[reorderInfo].moves.length - 2];
+    const lastMove = this[reorderInfo].moves[this[reorderInfo].moves.length - 1];
+    let ddx = 0;
+    if (secondLast) {
+      ddx = lastMove.x - secondLast.x;
+    }
+    return ddx;
+  }
+
+  /**
+   * Finds the top level item from the DOM repeater that has been marked as a draggable item.
+   * The event can originate from child elements which shouldn't be dragged.
+   *
+   * @param {DragEvent} e
+   * @return {WorkspaceTabElement|undefined} An element that is container for draggable items. Undefined if couldn't find.
+   */
+  [getReorderedItem](e)  {
+    const elmName = 'WORKSPACE-TAB';
+    const topTarget = /** @type WorkspaceTabElement */ (e.target);
+    if (topTarget.nodeName === elmName) {
+      return topTarget;
+    }
+    const path = e.composedPath();
+    if (!path || !path.length) {
+      return undefined;
+    }
+    return /** @type WorkspaceTabElement */ (path.find((node) => {
+      return /** @type WorkspaceTabElement */ (node).nodeName === elmName;
+    }));
+  }
+
+  /**
+   * Updates position of the children in the `workspace-tabs` container while tracking an item.
+   * 
+   * @param {number} start Change start index.
+   * @param {number} end Change end index.
+   * @param {number} draggedIndex Index of the tab being dragged.
+   * @param {number} overIndex Index of the tab being under the pointer.
+   */
+  [updateTabsReorder](start, end, draggedIndex, overIndex) {
+    const children = this.shadowRoot.querySelectorAll('workspace-tab');
+    const dragElement = children[draggedIndex];
+    // eslint-disable-next-line no-plusplus
+    for (let i = start; i <= end; i++) {
+      const el = children[i];
+      if (i !== draggedIndex) {
+        let dir = 0;
+        if (i > draggedIndex && i <= overIndex) {
+          dir = -1;
+        } else if (i > overIndex && i < draggedIndex) {
+          dir = 1;
+        }
+        el.classList.add('moving');
+        const offset = dir * dragElement.offsetWidth;
+        el.style.transform = `translate3d(${offset}px, 0px, 0px)`;
+      }
+    }
+  }
+
+  /**
+   * Removes drop pointer to shadow root.
+   * @param {Element} ref A list item to be used as a reference point.
+   */
+  [createDropPointer](ref) {
+    const rect = ref.getClientRects()[0];
+    const div = document.createElement('div');
+    div.className = 'drop-pointer';
+    const ownRect = this.getClientRects()[0];
+    let leftPosition = rect.x - ownRect.x;
+    leftPosition -= 10; // some padding
+    div.style.left = `${leftPosition}px`;
+    this[dropPointer] = div;
+    this.shadowRoot.appendChild(div);
+  }
+
+  [removeDropPointer]() {
+    if (!this[dropPointer]) {
+      return;
+    }
+    this.shadowRoot.removeChild(this[dropPointer]);
+    this[dropPointer] = undefined;
+    
+  }
+
+  /**
+   * Computes index of the drop.
+   * @return {Number} Index where to drop the object.
+   */
+  [computeDropOrder]() {
+    const dropRef = this[dropPointerReference];
+    let order;
+    if (dropRef) {
+      order = Number(dropRef.dataset.index);
+    } else {
+      order = this[tabsValue].length;
+    }
+    return order;
+  }
+
+  /**
+   * Action to handle dragover event when not in reorder mode.
+   * @param {DragEvent} e
+   */
+  [newTabDragover](e) {
+    const path = e.composedPath();
+    const item = /** @type HTMLElement */ (path.find((node) => /** @type HTMLElement */ (node).nodeName === 'WORKSPACE-TAB'));
+    if (!item) {
+      return;
+    }
+    const rect = item.getClientRects()[0];
+    const aboveHalf = (rect.x + rect.width/2) > e.x;
+    const ref = aboveHalf ? item : item.nextElementSibling;
+    if (!ref || this[dropPointerReference] === ref) {
+      return;
+    }
+    this[removeDropPointer]();
+    this[dropPointerReference] = ref;
+    this[createDropPointer](ref);
+  }
 
   [addNewHandler](e) {
     this.addEmpty();
@@ -686,6 +1153,9 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
       id="tabs"
       .selected="${selected}"
       @selected="${this[tabsSelectionHandler]}"
+      @dragover="${this[tabsDragOverHandler]}"
+      @dragleave="${this[tabsDragLeaveHandler]}"
+      @drop="${this[tabsDropHandler]}"
     >
       ${items.map((item, index) => this[tabTemplate](item, index))}
       <anypoint-icon-button
@@ -725,7 +1195,6 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     </workspace-tab>
     <div class="tab-divider"></div>
     `;
-    // ${isSelected ? '' : html`<div class="tab-divider"></div>`}
   }
 
   /**

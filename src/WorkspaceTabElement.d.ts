@@ -1,6 +1,6 @@
 import { LitElement, CSSResult, TemplateResult } from 'lit-element';
 
-export declare class WorkspaceTab extends LitElement {
+export declare class WorkspaceTabElement extends LitElement {
   static get styles(): CSSResult;
 
   connectedCallback(): void;
