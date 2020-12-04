@@ -8,7 +8,7 @@ This library contains:
 - ARC request panel (editor + response view)
 - ARC workspace
 
-The workspace serves as an entire main application screen in Advanced REST Client. It only need connecting it with the ARC events system and data models. The workspace also need the application handle few basic events (data read/write, filesystem I/O, etc). This is done in the final application shell that provides platform binding (web platform, Electron, Chrome, etc).
+The workspace serves as an entire main application screen in Advanced REST Client. It only needs connecting it with the ARC event system and the data models. The workspace also need the application to handle few basic events (data read/write, filesystem I/O, etc). This is done in the final application shell that provides platform binding (web platform, Electron, Chrome, etc).
 
 See the `demo/request-workspace.js` for a complete example of implementation.
 
