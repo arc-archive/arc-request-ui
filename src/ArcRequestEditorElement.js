@@ -57,7 +57,6 @@ export const urlHandler = Symbol('urlHandler');
 export const requestMenuHandler = Symbol('requestMenuHandler');
 export const tabsTemplate = Symbol('tabsTemplate');
 export const tabChangeHandler = Symbol('tabChangeHandler');
-export const informPanelState = Symbol('informPanelState');
 export const currentEditorTemplate = Symbol('currentEditorTemplate');
 export const headersTemplate = Symbol('headersTemplate');
 export const bodyTemplate = Symbol('bodyTemplate');
@@ -530,7 +529,11 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
     TransportEvents.abort(this, this.requestId);
   }
 
-  [internalSendHandler]() {
+  /**
+   * @param {Event} e
+   */
+  [internalSendHandler](e) {
+    e.stopPropagation();
     this.send();
   }
 
@@ -611,7 +614,6 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
 
   [tabChangeHandler](e) {
     this.selectedTab = e.detail.value;
-    this[informPanelState]();
     this.refreshEditors();
     if (!this.uiConfig) {
       this.uiConfig = {};
@@ -625,24 +627,6 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
       action: 'Editor switched',
       label: labels[this.selectedTab],
     });
-  }
-
-  /**
-   * Gathers the UI state info and informs about the change.
-   */
-  [informPanelState]() {
-    // const { collapseOpened, selectedTab, urlOpened } = this;
-    // const data = {
-    //   collapseOpened,
-    //   selectedTab,
-    //   urlOpened
-    // };
-    // this.state = data;
-    // this.dispatchEvent(new CustomEvent('state', {
-    //   detail: {
-    //     value: data
-    //   }
-    // }));
   }
 
   /**
@@ -1096,11 +1080,10 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
     if (!visible) {
       return '';
     }
-    const { config, outlined, compatibility, readOnly, eventsTarget } = this;
+    const { config, outlined, compatibility, readOnly } = this;
     return html`
     <arc-request-config 
       .config="${config}"
-      .eventsTarget="${eventsTarget}"
       ?outlined="${outlined}"
       ?compatibility="${compatibility}"
       ?readOnly="${readOnly}"

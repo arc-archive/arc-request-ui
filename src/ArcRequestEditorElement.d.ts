@@ -17,7 +17,6 @@ export declare const urlHandler: unique symbol
 export declare const requestMenuHandler: unique symbol
 export declare const tabsTemplate: unique symbol
 export declare const tabChangeHandler: unique symbol
-export declare const informPanelState: unique symbol
 export declare const currentEditorTemplate: unique symbol
 export declare const headersTemplate: unique symbol
 export declare const bodyTemplate: unique symbol
@@ -304,11 +303,6 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
   [requestMenuHandler](e: Event): void;
 
   [tabChangeHandler](e: Event): void;
-
-  /**
-   * Gathers the UI state info and informs about the change.
-   */
-  [informPanelState](): void;
 
   /**
    * Refreshes payload and headers editors

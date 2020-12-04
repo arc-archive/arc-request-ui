@@ -5,7 +5,7 @@ import { classMap } from 'lit-html/directives/class-map.js';
 import { ArcResizableMixin } from '@advanced-rest-client/arc-resizable-mixin';
 import { EventsTargetMixin } from '@advanced-rest-client/events-target-mixin';
 import { v4 } from '@advanced-rest-client/uuid-generator';
-import { WorkspaceEvents } from '@advanced-rest-client/arc-events';
+import { TransportEventTypes, WorkspaceEvents } from '@advanced-rest-client/arc-events';
 import { ArcModelEvents } from '@advanced-rest-client/arc-models';
 import { BodyProcessor } from '@advanced-rest-client/body-editor';
 import '@anypoint-web-components/anypoint-button/anypoint-icon-button.js';
@@ -18,8 +18,10 @@ import '../workspace-tabs.js'
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ArcBaseRequest} ArcBaseRequest */
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ARCSavedRequest} ARCSavedRequest */
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ARCHistoryRequest} ARCHistoryRequest */
+/** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.RequestConfig} RequestConfig */
 /** @typedef {import('@advanced-rest-client/arc-types').Workspace.DomainWorkspace} DomainWorkspace */
 /** @typedef {import('@advanced-rest-client/arc-types').DataExport.ArcExportObject} ArcExportObject */
+/** @typedef {import('@advanced-rest-client/arc-events').ApiTransportEvent} ApiTransportEvent */
 /** @typedef {import('lit-element').TemplateResult} TemplateResult */
 /** @typedef {import('./types').WorkspaceTab} WorkspaceTab */
 /** @typedef {import('./types').AddRequestOptions} AddRequestOptions */
@@ -68,6 +70,7 @@ export const dropPointer = Symbol('dropPointer');
 export const newTabDragover = Symbol('newTabDragover');
 export const resetReorderChildren = Symbol('resetReorderChildren');
 export const computeDropOrder = Symbol('computeDropOrder');
+export const transportHandler = Symbol('transportHandler');
 
 export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMixin(LitElement)) {
   static get styles() {
@@ -141,6 +144,8 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     this.backendId = undefined;
     this.autoRead = false;
     this.storeTimeout = 500;
+
+    this[transportHandler] = this[transportHandler].bind(this);
   }
 
   connectedCallback() {
@@ -148,6 +153,38 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     if (this.autoRead) {
       this.restore();
     }
+
+    this.addEventListener(TransportEventTypes.request, this[transportHandler]);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.removeEventListener(TransportEventTypes.request, this[transportHandler]);
+  }
+
+  /**
+   * A handler for the request transport event.
+   * It updates request configuration to add configuration from the workspace.
+   * @param {ApiTransportEvent} e
+   */
+  [transportHandler](e) {
+    let rConfig = e.detail.request.config;
+    if (!rConfig || (rConfig && rConfig.enabled === false)) {
+      rConfig = {
+        enabled: true,
+      };
+    }
+    const wConfig = this[workspaceValue].config;
+    const enabled = rConfig.enabled || !!wConfig;
+    const result = /** @type RequestConfig */ ({
+      ...(wConfig || {}),
+      ...(rConfig || {}),
+      enabled,
+    });
+    if (result.timeout && typeof result.timeout === 'string') {
+      result.timeout = Number(result.timeout);
+    }
+    e.detail.request.config = result;
   }
 
   /**
