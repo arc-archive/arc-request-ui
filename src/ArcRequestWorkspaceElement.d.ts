@@ -282,6 +282,11 @@ export declare class ArcRequestWorkspaceElement extends ArcResizableMixin(Events
   saveOpened(): void;
 
   /**
+   * Triggers the "save as..." action on the current request.
+   */
+  saveAsOpened(): boolean;
+
+  /**
    * Closes currently selected tab.
    */
   closeActiveTab(): void;

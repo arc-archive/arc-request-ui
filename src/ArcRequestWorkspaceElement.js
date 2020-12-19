@@ -691,6 +691,14 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
   }
 
   /**
+   * Triggers the "save as..." action on the current request.
+   */
+  saveAsOpened() {
+    const panel = this.getActivePanel();
+    panel.saveAsAction();
+  }
+
+  /**
    * Closes currently selected tab.
    */
   closeActiveTab() {
@@ -1048,9 +1056,9 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     if (!path || !path.length) {
       return undefined;
     }
-    return /** @type WorkspaceTabElement */ (path.find((node) => {
-      return /** @type WorkspaceTabElement */ (node).nodeName === elmName;
-    }));
+    return /** @type WorkspaceTabElement */ (path.find((node) => 
+       /** @type WorkspaceTabElement */ (node).nodeName === elmName
+    ));
   }
 
   /**
