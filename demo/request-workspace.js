@@ -16,7 +16,7 @@ import '@anypoint-web-components/anypoint-dialog/anypoint-dialog.js';
 import '@anypoint-web-components/anypoint-dialog/anypoint-dialog-scrollable.js';
 import '@advanced-rest-client/client-certificates/certificate-import.js';
 import '@advanced-rest-client/arc-ie/arc-data-export.js';
-import { RequestFactory, ModulesRegistry, RequestAuthorization, ResponseAuthorization, ArcFetchRequest } from '@advanced-rest-client/request-engine';
+import { RequestFactory, ModulesRegistry, RequestAuthorization, ResponseAuthorization, ArcFetchRequest, RequestCookies } from '@advanced-rest-client/request-engine';
 import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
 import { ImportEvents, ArcNavigationEventTypes, TransportEventTypes, TransportEvents, DataExportEventTypes, GoogleDriveEventTypes, WorkspaceEventTypes, ProjectActions } from '@advanced-rest-client/arc-events';
 import { ArcModelEvents } from '@advanced-rest-client/arc-models';
@@ -35,8 +35,10 @@ import '../arc-request-workspace.js';
 /** @typedef {import('@advanced-rest-client/arc-events').WorkspaceWriteEvent} WorkspaceWriteEvent */
 /** @typedef {import('@advanced-rest-client/arc-types').Workspace.DomainWorkspace} DomainWorkspace */
 
-ModulesRegistry.register(ModulesRegistry.request, '@advanced-rest-client/request-engine/request/request-authorization', RequestAuthorization, ['storage']);
-ModulesRegistry.register(ModulesRegistry.response, '@advanced-rest-client/request-engine/response/request-authorization', ResponseAuthorization, ['storage', 'events']);
+ModulesRegistry.register(ModulesRegistry.request, '@advanced-rest-client/request-engine/request/request-authorization', RequestAuthorization, ['store', 'events']);
+ModulesRegistry.register(ModulesRegistry.response, '@advanced-rest-client/request-engine/response/request-authorization', ResponseAuthorization, ['store', 'events']);
+ModulesRegistry.register(ModulesRegistry.request, '@advanced-rest-client/request-engine/request/cookies', RequestCookies.processRequestCookies, ['events']);
+ModulesRegistry.register(ModulesRegistry.response, '@advanced-rest-client/request-engine/response/cookies', RequestCookies.processResponseCookies, ['events']);
 
 
 // const WORKSPACE_STORE_KEY = 'demo.arc-request-ui.workspace';
@@ -209,8 +211,16 @@ class ComponentDemo extends DemoPage {
 
   async makeRequest(e) {
     const transportRequest = e.detail;
-    const request = await this.factory.processRequest(transportRequest);
-    TransportEvents.transport(document.body, request.id, request.request);
+    try {
+      const request = await this.factory.processRequest(transportRequest);
+      TransportEvents.transport(document.body, request.id, request.request);
+    } catch (ex) {
+      TransportEvents.response(document.body, transportRequest.id, transportRequest.request, null, {
+        error: ex,
+        loadingTime: 0,
+        status: 0,
+      });
+    }
   }
 
   /**
@@ -221,6 +231,11 @@ class ComponentDemo extends DemoPage {
     const result = await this.requestRunner.execute(e.detail, e.detail.config);
     if (!result) {
       // the request has been aborted.
+      TransportEvents.response(document.body, transportRequest.id, transportRequest.request, null, {
+        error: new Error('Request timeout'),
+        loadingTime: 0,
+        status: 0,
+      });
       return;
     }
 
