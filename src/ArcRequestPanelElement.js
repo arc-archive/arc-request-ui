@@ -58,6 +58,12 @@ export const storeAsRequestHandler = Symbol('storeAsRequestHandler');
 export const boundEventsValue = Symbol('boundEventsValue');
 export const retargetEvent = Symbol('retargetEvent');
 
+/** 
+ * @type {string[]}
+ */
+const defaultResponsePanels = ['response'];
+const defaultSelectedResponsePanel = 'response';
+
 export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(LitElement)) {
   static get styles() {
     return elementStyles;
@@ -94,14 +100,6 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
        * Enables material's outlined theme for inputs.
        */
       outlined: { type: Boolean },
-      /** 
-       * The list of active response panel (renderer panels). This is a list of names of opened panels.
-       */
-      responsePanels: { type: Array },
-      /** 
-       * The name of the selected response panel.
-       */
-      selectedResponsePanel: { type: String },
 
       /**
        * Indicates that the export options panel is currently rendered.
@@ -175,11 +173,7 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
      * @type {string}
      */
     this.oauth2RedirectUri = undefined;
-    /** 
-     * @type {string[]}
-     */
-    this.responsePanels = ['response'];
-    this.selectedResponsePanel = 'response';
+    
 
     this[requestTransportHandler] = this[requestTransportHandler].bind(this);
     this[responseTransportHandler] = this[responseTransportHandler].bind(this);
@@ -334,8 +328,15 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
   [selectedResponsePanelHandler](e) {
     const panel = /** @type ResponseViewElement */ (e.target);
     const { selected } = panel;
-    this.selectedResponsePanel = selected;
-    this.dispatchEvent(new CustomEvent('selectedresponsepanelchange'));
+    const { request } = this.editorRequest;
+    if (!request.ui) {
+      request.ui = {};
+    }
+    if (!request.ui.response) {
+      request.ui.response = {};
+    }
+    request.ui.response.selectedPanel = selected;
+    this[notifyChange]();
   }
 
   /**
@@ -344,8 +345,15 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
   [activeResponsePanelsHandler](e) {
     const panel = /** @type ResponseViewElement */ (e.target);
     const { active } = panel;
-    this.responsePanels = active;
-    this.dispatchEvent(new CustomEvent('responsepanelschange'));
+    const { request } = this.editorRequest;
+    if (!request.ui) {
+      request.ui = {};
+    }
+    if (!request.ui.response) {
+      request.ui.response = {};
+    }
+    request.ui.response.activePanels = active;
+    this[notifyChange]();
   }
 
   [sheetClosedHandler](e) {
@@ -528,8 +536,8 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
    * @returns {TemplateResult} The template for the response view
    */
   [responseTemplate]() {
-    const { editorRequest, responsePanels, selectedResponsePanel } = this;
-    const { transportRequest, response } = editorRequest.request;
+    const { editorRequest } = this;
+    const { transportRequest, response, ui={} } = editorRequest.request;
     const classes = {
       panel: true,
       'scrolling-region': this.classList.contains('stacked'),
@@ -538,8 +546,8 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
     <response-view
       .response="${response}"
       .request="${transportRequest}"
-      .selected="${selectedResponsePanel}"
-      .active="${responsePanels}"
+      .selected="${ui.response && ui.response.selectedPanel || defaultSelectedResponsePanel}"
+      .active="${ui.response && ui.response.activePanels || defaultResponsePanels}"
       class="${classMap(classes)}"
       @clear="${this[responseClearHandler]}"
       @selectedchange="${this[selectedResponsePanelHandler]}"
