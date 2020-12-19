@@ -70,7 +70,7 @@ export default css`
 
 .right-decorator-clip {
   background-color: white;
-  clip-path: circle(12px at 12px 0%);
+  clip-path: circle(11px at 12px 0%);
 }
 
 :host(.selected) .left-decorator, 

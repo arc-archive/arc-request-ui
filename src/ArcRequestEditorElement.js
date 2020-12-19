@@ -612,7 +612,7 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
     }
   }
 
-  [tabChangeHandler](e) {
+  async [tabChangeHandler](e) {
     this.selectedTab = e.detail.value;
     this.refreshEditors();
     if (!this.uiConfig) {
@@ -627,6 +627,8 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
       action: 'Editor switched',
       label: labels[this.selectedTab],
     });
+    await this.updateComplete;
+    this.notifyResize();
   }
 
   /**
@@ -636,6 +638,8 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
   async refreshEditors() {
     await this.updateComplete;
     this.notifyResize();
+    // this ensures that the workspace element receives the event
+    this.dispatchEvent(new Event('resize', { bubbles: true, composed: true }));
   }
 
   /**
