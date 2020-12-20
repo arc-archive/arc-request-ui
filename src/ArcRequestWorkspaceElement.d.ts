@@ -93,6 +93,12 @@ export declare class ArcRequestWorkspaceElement extends ArcResizableMixin(Events
    * @attribute
    */
   renderSend: boolean;
+  /** 
+   * Whether to render the request progress status in the request panel.
+   * This works with the events dispatched by the transport library. Custom libraries may not support this.
+   * @attribute
+   */
+  progressInfo: boolean;
   /**
    * Mote, tabs are in sync with workspace requests array
    */

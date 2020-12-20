@@ -32,4 +32,15 @@ export default css`
   right: var(--cookie-manager-bottom-sheet-right, 40px);
   left: var(--cookie-manager-bottom-sheet-left, auto);
 }
+
+.progress-info {
+  position: absolute;
+  bottom: 0;
+  width: 90%;
+  background-color: #fff9c4;
+  border-radius: 8px 8px 0 0;
+  padding: 20px;
+  left: 5%;
+  z-index: 2;
+}
 `;

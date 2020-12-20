@@ -121,6 +121,12 @@ export declare class ArcRequestPanelElement extends EventsTargetMixin(ArcResizab
    * @attribute
    */
   renderSend: boolean;
+  /** 
+   * Whether to render the request progress status in the request panel.
+   * This works with the events dispatched by the transport library. Custom libraries may not support this.
+   * @attribute
+   */
+  progressInfo: boolean;
 
   /**
    * Reference to ArcRequestEditorElement element.

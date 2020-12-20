@@ -53,7 +53,7 @@ class ComponentDemo extends DemoPage {
     this.initObservableProperties([
       'withMenu', 'initialized', 'importingCertificate',
       'exportSheetOpened', 'exportFile', 'exportData',
-      'workspaceId', 'renderSend',
+      'workspaceId', 'renderSend', 'progressInfo',
     ]);
     this.componentName = 'ARC request workspace';
     this.compatibility = false;
@@ -61,6 +61,7 @@ class ComponentDemo extends DemoPage {
     this.initialized = false;
     this.importingCertificate = false;
     this.renderSend = false;
+    this.progressInfo = false;
     this.workspaceId = 'default';
     
     this.generator = new DataGenerator();
@@ -313,6 +314,7 @@ class ComponentDemo extends DemoPage {
       oauth2RedirectUri,
       workspaceId,
       renderSend,
+      progressInfo,
     } = this;
     return html`
     <section class="documentation-section">
@@ -326,6 +328,7 @@ class ComponentDemo extends DemoPage {
         <arc-request-workspace
           ?compatibility="${compatibility}"
           ?renderSend="${renderSend}"
+          ?progressInfo="${progressInfo}"
           .oauth2RedirectUri="${oauth2RedirectUri}"
           backendId="${workspaceId}"
           autoRead
@@ -361,6 +364,15 @@ class ComponentDemo extends DemoPage {
         title="Renders the send button on the request editor"
       >
         Render send button
+      </anypoint-checkbox>
+      <anypoint-checkbox
+        aria-describedby="mainOptionsLabel"
+        slot="options"
+        name="progressInfo"
+        @change="${this._toggleMainOption}"
+        title="Renders the status when sending the request"
+      >
+        Render transport info
       </anypoint-checkbox>
     </section>`;
   }

@@ -111,6 +111,11 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
        * When set it renders the send request button on the request editor
        */
       renderSend: { type: Boolean },
+      /** 
+       * Whether to render the request progress status in the request panel.
+       * This works with the events dispatched by the transport library. Custom libraries may not support this.
+       */
+      progressInfo: { type: Boolean },
     };
   }
 
@@ -149,6 +154,7 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     this.autoRead = false;
     this.storeTimeout = 500;
     this.renderSend = false;
+    this.progressInfo = false;
 
     this[transportHandler] = this[transportHandler].bind(this);
   }
@@ -1276,6 +1282,7 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
       ?hidden="${!visible}"
       ?compatibility="${this.compatibility}"
       ?renderSend="${this.renderSend}"
+      ?progressInfo="${this.progressInfo}"
       .editorRequest="${request}"
       .oauth2RedirectUri="${this.oauth2RedirectUri}"
       @change="${this[requestChangeHandler]}"

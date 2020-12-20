@@ -58,6 +58,7 @@ export const storeRequestHandler = Symbol('storeRequestHandler');
 export const storeAsRequestHandler = Symbol('storeAsRequestHandler');
 export const boundEventsValue = Symbol('boundEventsValue');
 export const retargetEvent = Symbol('retargetEvent');
+export const transportStatusHandler = Symbol('transportStatusHandler');
 
 /** 
  * @type {string[]}
@@ -128,6 +129,15 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
        * When set it renders the send request button on the request editor
        */
       renderSend: { type: Boolean },
+      /** 
+       * Whether to render the request progress status in the request panel.
+       * This works with the events dispatched by the transport library. Custom libraries may not support this.
+       */
+      progressInfo: { type: Boolean },
+      /** 
+       * When `progressInfo` is set this is the message to render in the status field.
+       */
+      progressMessage: { type: String },
     };
   }
 
@@ -179,11 +189,14 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
      */
     this.oauth2RedirectUri = undefined;
     this.renderSend = false;
+    this.progressInfo = false;
+    this.progressMessage = '';
     
     this[requestTransportHandler] = this[requestTransportHandler].bind(this);
     this[responseTransportHandler] = this[responseTransportHandler].bind(this);
     this[keydownHandler] = this[keydownHandler].bind(this);
     this[requestDeletedHandler] = this[requestDeletedHandler].bind(this);
+    this[transportStatusHandler] = this[transportStatusHandler].bind(this);
   }
 
   /**
@@ -195,6 +208,11 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
     window.addEventListener(TransportEventTypes.response, this[responseTransportHandler]);
     window.addEventListener(ArcModelEventTypes.Request.State.delete, this[requestDeletedHandler]);
     this.addEventListener('keydown', this[keydownHandler]);
+    window.addEventListener('requestloadstart', this[transportStatusHandler]);
+    window.addEventListener('requestfirstbytereceived', this[transportStatusHandler]);
+    window.addEventListener('requestloadend', this[transportStatusHandler]);
+    window.addEventListener('beforeredirect', this[transportStatusHandler]);
+    window.addEventListener('headersreceived', this[transportStatusHandler]);
   }
 
   /**
@@ -206,6 +224,11 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
     window.removeEventListener(TransportEventTypes.response, this[responseTransportHandler]);
     window.removeEventListener(ArcModelEventTypes.Request.State.delete, this[requestDeletedHandler]);
     this.removeEventListener('keydown', this[keydownHandler]);
+    window.removeEventListener('requestloadstart', this[transportStatusHandler]);
+    window.removeEventListener('requestfirstbytereceived', this[transportStatusHandler]);
+    window.removeEventListener('requestloadend', this[transportStatusHandler]);
+    window.removeEventListener('beforeredirect', this[transportStatusHandler]);
+    window.removeEventListener('headersreceived', this[transportStatusHandler]);
   }
 
   /**
@@ -222,6 +245,7 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
   abort() {
     this.editor.abort();
     this.loading = false;
+    this.progressMessage = '';
   }
 
   /**
@@ -282,6 +306,7 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
       return;
     }
     this.loading = true;
+    this.progressMessage = 'Preparing the request...';
   }
 
   /**
@@ -297,6 +322,7 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
     this.editorRequest.request.transportRequest = request;
     this.editorRequest.request.response = response;
     this.loading = false;
+    this.progressMessage = '';
     this.requestUpdate();
     this[notifyChange]();
   }
@@ -493,6 +519,28 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
     this.dispatchEvent(new Event(e.type));
   }
 
+  /**
+   * The handler for the various transport events informing about the status.
+   * @param {CustomEvent} e
+   */
+  [transportStatusHandler](e) {
+    const { type, detail } = e;
+    const { id } = detail;
+    if (this.editorRequest.id !== id) {
+      return;
+    }
+    let message;
+    switch (type) {
+      case 'requestloadstart': message = 'Sending the message...'; break;
+      case 'headersreceived': message = 'Received headers...'; break;
+      case 'requestfirstbytereceived': message = 'Receiving data...'; break;
+      case 'requestloadend': message = 'Finishing response processing...'; break;
+      case 'beforeredirect': message = 'Redirecting the request...'; break;
+      default:
+    }
+    this.progressMessage = message;
+  }
+
   render() {
     return html`
     ${this[requestEditorTemplate]()}
@@ -578,6 +626,7 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
     }
     return html`
     <progress class="loading-progress"></progress>
+    ${this.progressInfo ? html`<div class="progress-info">${this.progressMessage}</div>` : ''}
     `;
   }
 
