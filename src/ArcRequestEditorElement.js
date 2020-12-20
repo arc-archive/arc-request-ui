@@ -218,6 +218,10 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
        * To be set when the request is being transported.
        */
       loading: { type: Boolean },
+      /** 
+       * When set the editor does not allow to send the request if one is already loading.
+       */
+      noSendOnLoading: { type: Boolean },
     };
   }
 
@@ -315,6 +319,7 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
     this.selectedTab = 0;
     this.renderSend = false;
     this.loading = false;
+    this.noSendOnLoading = false;
     this[methodSelectorOpened] = false;
     this[internalSendHandler] = this[internalSendHandler].bind(this);
   }
@@ -510,6 +515,9 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
    * Dispatches the send request event to the ARC request engine.
    */
   send() {
+    if (this.loading && this.noSendOnLoading) {
+      return;
+    }
     if (!this.validateUrl()) {
       return;
     }

@@ -99,6 +99,11 @@ export declare class ArcRequestWorkspaceElement extends ArcResizableMixin(Events
    * @attribute
    */
   progressInfo: boolean;
+  /** 
+   * When set the request editor does not allow to send the request if one is already loading.
+   * @attribute
+   */
+  noSendOnLoading: boolean;
   /**
    * Mote, tabs are in sync with workspace requests array
    */

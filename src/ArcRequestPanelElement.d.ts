@@ -127,6 +127,11 @@ export declare class ArcRequestPanelElement extends EventsTargetMixin(ArcResizab
    * @attribute
    */
   progressInfo: boolean;
+  /** 
+   * When set the request editor does not allow to send the request if one is already loading.
+   * @attribute
+   */
+  noSendOnLoading: boolean;
 
   /**
    * Reference to ArcRequestEditorElement element.

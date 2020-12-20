@@ -236,6 +236,11 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
    * @attribute
    */
   loading: boolean;
+  /** 
+   * When set the editor does not allow to send the request if one is already loading.
+   * @attribute
+   */
+  noSendOnLoading: boolean;
 
   [methodSelectorOpened]: boolean;
 

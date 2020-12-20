@@ -116,6 +116,10 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
        * This works with the events dispatched by the transport library. Custom libraries may not support this.
        */
       progressInfo: { type: Boolean },
+      /** 
+       * When set the request editor does not allow to send the request if one is already loading.
+       */
+      noSendOnLoading: { type: Boolean },
     };
   }
 
@@ -140,6 +144,7 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
      * @type {string}
      */
     this.oauth2RedirectUri = undefined;
+    this.noSendOnLoading = false;
     /** 
      * @type {DomainWorkspace}
      */
@@ -1283,6 +1288,7 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
       ?compatibility="${this.compatibility}"
       ?renderSend="${this.renderSend}"
       ?progressInfo="${this.progressInfo}"
+      ?noSendOnLoading="${this.noSendOnLoading}"
       .editorRequest="${request}"
       .oauth2RedirectUri="${this.oauth2RedirectUri}"
       @change="${this[requestChangeHandler]}"

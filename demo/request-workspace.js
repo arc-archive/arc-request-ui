@@ -53,7 +53,7 @@ class ComponentDemo extends DemoPage {
     this.initObservableProperties([
       'withMenu', 'initialized', 'importingCertificate',
       'exportSheetOpened', 'exportFile', 'exportData',
-      'workspaceId', 'renderSend', 'progressInfo',
+      'workspaceId', 'renderSend', 'progressInfo', 'noSendOnLoading',
     ]);
     this.componentName = 'ARC request workspace';
     this.compatibility = false;
@@ -62,6 +62,7 @@ class ComponentDemo extends DemoPage {
     this.importingCertificate = false;
     this.renderSend = false;
     this.progressInfo = false;
+    this.noSendOnLoading = false;
     this.workspaceId = 'default';
     
     this.generator = new DataGenerator();
@@ -315,6 +316,7 @@ class ComponentDemo extends DemoPage {
       workspaceId,
       renderSend,
       progressInfo,
+      noSendOnLoading,
     } = this;
     return html`
     <section class="documentation-section">
@@ -329,6 +331,7 @@ class ComponentDemo extends DemoPage {
           ?compatibility="${compatibility}"
           ?renderSend="${renderSend}"
           ?progressInfo="${progressInfo}"
+          ?noSendOnLoading="${noSendOnLoading}"
           .oauth2RedirectUri="${oauth2RedirectUri}"
           backendId="${workspaceId}"
           autoRead
@@ -373,6 +376,15 @@ class ComponentDemo extends DemoPage {
         title="Renders the status when sending the request"
       >
         Render transport info
+      </anypoint-checkbox>
+      <anypoint-checkbox
+        aria-describedby="mainOptionsLabel"
+        slot="options"
+        name="noSendOnLoading"
+        @change="${this._toggleMainOption}"
+        title="Disables sending a request when already loading one"
+      >
+        No sending on loading
       </anypoint-checkbox>
     </section>`;
   }

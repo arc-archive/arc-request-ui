@@ -138,6 +138,10 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
        * When `progressInfo` is set this is the message to render in the status field.
        */
       progressMessage: { type: String },
+      /** 
+       * When set the request editor does not allow to send the request if one is already loading.
+       */
+      noSendOnLoading: { type: Boolean },
     };
   }
 
@@ -191,6 +195,7 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
     this.renderSend = false;
     this.progressInfo = false;
     this.progressMessage = '';
+    this.noSendOnLoading = false;
     
     this[requestTransportHandler] = this[requestTransportHandler].bind(this);
     this[responseTransportHandler] = this[responseTransportHandler].bind(this);
@@ -580,6 +585,7 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
       .storedType="${type}"
       .loading="${loading}"
       ?renderSend="${this.renderSend}"
+      ?noSendOnLoading="${this.noSendOnLoading}"
       class="panel"
       @change="${this[requestChangeHandler]}"
       @clear="${this[requestClearHandler]}"
