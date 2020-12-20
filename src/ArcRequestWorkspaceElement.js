@@ -284,6 +284,7 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     let tab;
     if (index !== -1) {
       this[requestsValue][index].request = request;
+      this[requestsValue][index] = { ...this[requestsValue][index] };
       tab = this[requestsValue][index].tab;
       this[updateTab](tab, request);
     } else {
