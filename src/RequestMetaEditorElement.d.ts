@@ -50,6 +50,9 @@ import { ArcRequest } from '@advanced-rest-client/arc-types';
  *
  * If the request has both `_id` and `_rev` properties (PouchDB properties)
  * it renders "saved" view.
+ * 
+ * @fires update When the request has been updated.
+ * @fires close When requesting to hide the editor.
  */
 export declare class RequestMetaEditorElement extends ProjectsListConsumerMixin(RequestMetaDetailsElement) {
   
@@ -161,7 +164,4 @@ export declare class RequestMetaEditorElement extends ProjectsListConsumerMixin(
   [unsavedActionsTemplate](): TemplateResult;
 
   render(): TemplateResult;
-}
-
-export declare interface RequestMetaEditorElement extends ProjectsListConsumerMixin, RequestMetaDetailsElement {
 }

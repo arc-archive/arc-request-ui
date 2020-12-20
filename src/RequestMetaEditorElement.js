@@ -162,6 +162,7 @@ export class RequestMetaEditorElement extends ProjectsListConsumerMixin(RequestM
 
   firstUpdated() {
     const config = this[generateEditorConfig]();
+    // @ts-ignore
     const instance = monaco.editor.create(this.shadowRoot.querySelector('.monaco'), config);
     instance.onDidChangeModelContent(this[monacoValueChanged]);
     this[monacoInstance] = instance;
@@ -187,6 +188,7 @@ export class RequestMetaEditorElement extends ProjectsListConsumerMixin(RequestM
       detectIndentation: true,
       value: this.description,
     });
+    // @ts-ignore
     config = MonacoTheme.assignTheme(monaco, config);
     config.language = 'markdown';
     return config;

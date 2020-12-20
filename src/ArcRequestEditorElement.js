@@ -1052,7 +1052,6 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
       payload,
       readOnly,
       contentType,
-      eventsTarget
     } = this;
     return html`
     <body-editor
@@ -1062,7 +1061,6 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
       ?readOnly="${readOnly}"
       .value="${payload}"
       .contentType="${contentType}"
-      .eventsTarget="${eventsTarget}"
       @change="${this[bodyHandler]}"
       @selected="${this[bodyHandler]}"
     ></body-editor>
@@ -1094,12 +1092,11 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
     if (!visible) {
       return '';
     }
-    const { requestActions, responseActions, outlined, compatibility, eventsTarget } = this;
+    const { requestActions, responseActions, outlined, compatibility } = this;
     return html`
     <arc-actions
       .request="${requestActions}"
       .response="${responseActions}"
-      .eventsTarget="${eventsTarget}"
       ?compatibility="${compatibility}"
       ?outlined="${outlined}"
       slot="content"
@@ -1137,13 +1134,17 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
       return '';
     }
     const { url, method, headers, payload } = this;
+    let data;
+    if (typeof payload === 'string') {
+      data = payload;
+    }
     return html`
     <http-code-snippets
       scrollable
       .url="${url}"
       .method="${method}"
       .headers="${headers}"
-      .payload="${payload}"
+      .payload="${data}"
     ></http-code-snippets>
     `;
   }

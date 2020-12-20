@@ -19,6 +19,7 @@ import '../request-meta-editor.js';
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ARCSavedRequest} ARCSavedRequest */
 /** @typedef {import('@advanced-rest-client/arc-types').ArcResponse.Response} ArcResponse */
 /** @typedef {import('@advanced-rest-client/arc-types').ArcResponse.ErrorResponse} ErrorResponse */
+/** @typedef {import('@advanced-rest-client/arc-types').DataExport.ArcNativeDataExport} ArcNativeDataExport */
 /** @typedef {import('@advanced-rest-client/arc-events').ApiRequestEvent} ApiRequestEvent */
 /** @typedef {import('@advanced-rest-client/arc-events').ApiResponseEvent} ApiResponseEvent */
 /** @typedef {import('@advanced-rest-client/arc-models').ARCRequestDeletedEvent} ARCRequestDeletedEvent */
@@ -383,9 +384,9 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
     const options = /** @type ExportOptions */ (detail.exportOptions);
     
     options.kind = 'ARC#AllDataExport';
-    const data = {
+    const data = /** @type ArcNativeDataExport */ ({
       requests: [this.editorRequest.request],
-    };
+    });
     this.errorMessage = undefined;
     try {
       const result = await ExportEvents.nativeData(this, data, options, provider);

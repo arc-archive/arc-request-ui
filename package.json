@@ -29,7 +29,7 @@
     "@advanced-rest-client/arc-models": "^4.2.6",
     "@advanced-rest-client/arc-resizable-mixin": "^1.2.0",
     "@advanced-rest-client/arc-response": "^0.1.3",
-    "@advanced-rest-client/arc-types": "^0.2.35",
+    "@advanced-rest-client/arc-types": "^0.2.37",
     "@advanced-rest-client/arc-url": "^0.1.3",
     "@advanced-rest-client/authorization-method": "^0.2.2",
     "@advanced-rest-client/authorization-selector": "^0.2.2",
