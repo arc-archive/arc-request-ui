@@ -1053,13 +1053,14 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
       readOnly,
       contentType,
     } = this;
+    const body = payload || undefined;
     return html`
     <body-editor
       ?hidden="${!visible}"
       ?compatibility="${compatibility}"
       ?outlined="${outlined}"
       ?readOnly="${readOnly}"
-      .value="${payload}"
+      .value="${body}"
       .contentType="${contentType}"
       @change="${this[bodyHandler]}"
       @selected="${this[bodyHandler]}"
