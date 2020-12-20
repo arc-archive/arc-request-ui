@@ -232,6 +232,12 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
   [keydownHandler](e) {
     if (this.loading && e.code === 'Escape') {
       this.abort();
+    } else if (!this.loading && e.ctrlKey && e.code === 'Enter') {
+      // @ts-ignore
+      const isBody = e.composedPath().some((element) => element.localName === 'body-editor');
+      if (!isBody) {
+        this.send();
+      }
     }
   }
 

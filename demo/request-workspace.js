@@ -18,7 +18,7 @@ import '@advanced-rest-client/client-certificates/certificate-import.js';
 import '@advanced-rest-client/arc-ie/arc-data-export.js';
 import { RequestFactory, ModulesRegistry, RequestAuthorization, ResponseAuthorization, ArcFetchRequest, RequestCookies } from '@advanced-rest-client/request-engine';
 import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
-import { ImportEvents, ArcNavigationEventTypes, TransportEventTypes, TransportEvents, DataExportEventTypes, GoogleDriveEventTypes, WorkspaceEventTypes, ProjectActions } from '@advanced-rest-client/arc-events';
+import { ImportEvents, ArcNavigationEventTypes, TransportEventTypes, TransportEvents, DataExportEventTypes, GoogleDriveEventTypes, WorkspaceEventTypes, ProjectActions, SessionCookieEventTypes } from '@advanced-rest-client/arc-events';
 import { ArcModelEvents } from '@advanced-rest-client/arc-models';
 import { MonacoLoader } from '@advanced-rest-client/monaco-support';
 import jexl from '../web_modules/jexl/dist/Jexl.js';
@@ -82,6 +82,10 @@ class ComponentDemo extends DemoPage {
     window.addEventListener(GoogleDriveEventTypes.save, this._fileExportHandler.bind(this));
     window.addEventListener(WorkspaceEventTypes.read, this._workspaceReadHandler.bind(this));
     window.addEventListener(WorkspaceEventTypes.write, this._workspaceWriteHandler.bind(this));
+    window.addEventListener(SessionCookieEventTypes.update, (e) => {
+      // @ts-ignore
+      console.log('Cookie update', e.cookie);
+    });
     
     this.initEditors();
     listenEncoding();
