@@ -20,6 +20,7 @@ export default css`
 
 arc-request-panel {
   flex: 1;
+  outline: none;
 }
 
 .tabs {

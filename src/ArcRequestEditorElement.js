@@ -84,6 +84,7 @@ export const requestMetaCloseHandler = Symbol('requestMetaCloseHandler');
 export const curlDialogTemplate = Symbol('curlDialogTemplate');
 export const importCURL = Symbol('importCURL');
 export const curlCloseHandler = Symbol('curlCloseHandler');
+export const sendButtonTemplate = Symbol('sendButtonTemplate');
 
 export const HttpMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'CONNECT', 'OPTIONS', 'TRACE'];
 export const NonPayloadMethods = ['GET', 'HEAD'];
@@ -209,6 +210,14 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
        * When set then it renders metadata editor.
        */
       metaEditorEnabled: { type: Boolean },
+      /** 
+       * When set it renders the send request button.
+       */
+      renderSend: { type: Boolean },
+      /**
+       * To be set when the request is being transported.
+       */
+      loading: { type: Boolean },
     };
   }
 
@@ -304,6 +313,8 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
     super();
     this.reset();
     this.selectedTab = 0;
+    this.renderSend = false;
+    this.loading = false;
     this[methodSelectorOpened] = false;
     this[internalSendHandler] = this[internalSendHandler].bind(this);
   }
@@ -858,6 +869,7 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
     <div class="url-meta">
       ${this[httpMethodSelectorTemplate]()}
       ${this[urlEditorTemplate]()}
+      ${this[sendButtonTemplate]()}
       ${requestMenuTemplate(this[requestMenuHandler], this.isStored, this.compatibility)}
     </div>
     `;
@@ -926,6 +938,27 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
       .eventsTarget="${eventsTarget}"
       @change="${this[urlHandler]}"
     ></url-input-editor>
+    `;
+  }
+
+  /**
+   * @returns {TemplateResult|string} The template for the "send" or "abort" buttons.
+   */
+  [sendButtonTemplate]() {
+    if (!this.renderSend) {
+      return '';
+    }
+    if (this.loading) {
+      return html`
+      <anypoint-icon-button title="Cancel sending the request" @click="${this.abort}">
+        <arc-icon icon="cancel"></arc-icon>
+      </anypoint-icon-button>
+      `;
+    }
+    return html`
+    <anypoint-icon-button title="Send the request" @click="${this.send}">
+      <arc-icon icon="send"></arc-icon>
+    </anypoint-icon-button>
     `;
   }
 

@@ -88,6 +88,11 @@ export declare class ArcRequestWorkspaceElement extends ArcResizableMixin(Events
    * @attribute
    */
   storeTimeout: number;
+  /** 
+   * When set it renders the send request button on the request editor
+   * @attribute
+   */
+  renderSend: boolean;
   /**
    * Mote, tabs are in sync with workspace requests array
    */

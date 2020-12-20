@@ -226,6 +226,17 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
    */
   get isStored(): boolean;
 
+  /** 
+   * When set it renders the send request button.
+   * @attribute
+   */
+  renderSend: boolean;
+  /**
+   * To be set when the request is being transported.
+   * @attribute
+   */
+  loading: boolean;
+
   [methodSelectorOpened]: boolean;
 
   constructor();

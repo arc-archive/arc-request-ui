@@ -116,6 +116,11 @@ export declare class ArcRequestPanelElement extends EventsTargetMixin(ArcResizab
    * @attribute
    */
   boundEvents: boolean;
+  /** 
+   * When set it renders the send request button on the request editor
+   * @attribute
+   */
+  renderSend: boolean;
 
   /**
    * Reference to ArcRequestEditorElement element.

@@ -123,6 +123,10 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
        * component.
        */
       boundEvents: { type: Boolean },
+      /** 
+       * When set it renders the send request button on the request editor
+       */
+      renderSend: { type: Boolean },
     };
   }
 
@@ -173,8 +177,8 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
      * @type {string}
      */
     this.oauth2RedirectUri = undefined;
+    this.renderSend = false;
     
-
     this[requestTransportHandler] = this[requestTransportHandler].bind(this);
     this[responseTransportHandler] = this[responseTransportHandler].bind(this);
     this[keydownHandler] = this[keydownHandler].bind(this);
@@ -503,7 +507,7 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
    * @returns {TemplateResult} The template for the request editor view
    */
   [requestEditorTemplate]() {
-    const { compatibility, oauth2RedirectUri } = this;
+    const { compatibility, oauth2RedirectUri, loading } = this;
     const editorRequest = /** @type ArcEditorRequest */ (this.editorRequest || {});
     const { id } = editorRequest;
     const request = /** @type ARCSavedRequest */ (editorRequest.request || {});
@@ -525,6 +529,8 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
       .oauth2RedirectUri="${oauth2RedirectUri}"
       .storedId="${_id}"
       .storedType="${type}"
+      .loading="${loading}"
+      ?renderSend="${this.renderSend}"
       class="panel"
       @change="${this[requestChangeHandler]}"
       @clear="${this[requestClearHandler]}"

@@ -107,6 +107,10 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
        * Default to 500 (ms).
        */
       storeTimeout: { type: Number },
+      /** 
+       * When set it renders the send request button on the request editor
+       */
+      renderSend: { type: Boolean },
     };
   }
 
@@ -144,6 +148,7 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     this.backendId = undefined;
     this.autoRead = false;
     this.storeTimeout = 500;
+    this.renderSend = false;
 
     this[transportHandler] = this[transportHandler].bind(this);
   }
@@ -1270,6 +1275,7 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     <arc-request-panel
       ?hidden="${!visible}"
       ?compatibility="${this.compatibility}"
+      ?renderSend="${this.renderSend}"
       .editorRequest="${request}"
       .oauth2RedirectUri="${this.oauth2RedirectUri}"
       @change="${this[requestChangeHandler]}"
@@ -1279,6 +1285,7 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
       data-index="${index}"
       data-tab="${request.tab}"
       boundEvents
+      tabindex="0"
     ></arc-request-panel>
     `;
   }
