@@ -10,6 +10,22 @@ export default css`
   display: none !important;
 }
 
+.content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel {
+  flex: 1;
+  overflow: hidden auto;
+  box-sizing: border-box;
+}
+
+body-editor {
+  height: 100%;
+}
+
 .url-meta {
   display: flex;
   align-items: center;
@@ -108,6 +124,7 @@ url-input-editor {
 
 .editor-tabs {
   border-bottom: 1px #e5e5e5 solid;
+  min-height: 48px;
 }
 
 .tab-counter {

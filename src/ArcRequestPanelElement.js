@@ -1,6 +1,7 @@
 /* eslint-disable class-methods-use-this */
 import { LitElement, html } from 'lit-element';
 import { classMap } from 'lit-html/directives/class-map.js';
+import { styleMap } from 'lit-html/directives/style-map.js';
 import { ArcResizableMixin } from '@advanced-rest-client/arc-resizable-mixin';
 import { EventsTargetMixin } from '@advanced-rest-client/events-target-mixin';
 import { ExportEvents, TelemetryEvents, TransportEventTypes } from '@advanced-rest-client/arc-events';
@@ -33,6 +34,7 @@ import '../request-meta-editor.js';
 export const requestEditorTemplate = Symbol('requestEditorTemplate');
 export const responseTemplate = Symbol('requestEditorTemplate');
 export const loaderTemplate = Symbol('loaderTemplate');
+export const resizeTemplate = Symbol('resizeTemplate');
 export const requestTransportHandler = Symbol('requestTransportHandler');
 export const responseTransportHandler = Symbol('responseTransportHandler');
 export const responseClearHandler = Symbol('responseClearHandler');
@@ -59,6 +61,11 @@ export const storeAsRequestHandler = Symbol('storeAsRequestHandler');
 export const boundEventsValue = Symbol('boundEventsValue');
 export const retargetEvent = Symbol('retargetEvent');
 export const transportStatusHandler = Symbol('transportStatusHandler');
+export const resizerMouseDown = Symbol('resizerMouseDown');
+export const resizerMouseUp = Symbol('resizerMouseUp');
+export const resizerMouseMove = Symbol('resizerMouseMove');
+export const isResizing = Symbol('isResizing');
+export const boxSize = Symbol('boxSize');
 
 /** 
  * @type {string[]}
@@ -142,6 +149,12 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
        * When set the request editor does not allow to send the request if one is already loading.
        */
       noSendOnLoading: { type: Boolean },
+
+      /** 
+       * This value is set after resizing the panels in the UI. Once set it removes 
+       * flex value from the editor and sets its height to this value.
+       */
+      editorHeight: { type: Number },
     };
   }
 
@@ -196,12 +209,18 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
     this.progressInfo = false;
     this.progressMessage = '';
     this.noSendOnLoading = false;
+    /** 
+     * @type {number|undefined}
+     */
+    this.editorHeight = undefined;
     
     this[requestTransportHandler] = this[requestTransportHandler].bind(this);
     this[responseTransportHandler] = this[responseTransportHandler].bind(this);
     this[keydownHandler] = this[keydownHandler].bind(this);
     this[requestDeletedHandler] = this[requestDeletedHandler].bind(this);
     this[transportStatusHandler] = this[transportStatusHandler].bind(this);
+    this[resizerMouseMove] = this[resizerMouseMove].bind(this);
+    this[resizerMouseUp] = this[resizerMouseUp].bind(this);
   }
 
   /**
@@ -213,6 +232,8 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
     window.addEventListener(TransportEventTypes.response, this[responseTransportHandler]);
     window.addEventListener(ArcModelEventTypes.Request.State.delete, this[requestDeletedHandler]);
     this.addEventListener('keydown', this[keydownHandler]);
+    this.addEventListener('mousemove', this[resizerMouseMove]);
+    window.addEventListener('mouseup', this[resizerMouseUp]);
     window.addEventListener('requestloadstart', this[transportStatusHandler]);
     window.addEventListener('requestfirstbytereceived', this[transportStatusHandler]);
     window.addEventListener('requestloadend', this[transportStatusHandler]);
@@ -229,6 +250,8 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
     window.removeEventListener(TransportEventTypes.response, this[responseTransportHandler]);
     window.removeEventListener(ArcModelEventTypes.Request.State.delete, this[requestDeletedHandler]);
     this.removeEventListener('keydown', this[keydownHandler]);
+    this.removeEventListener('mousemove', this[resizerMouseMove]);
+    window.removeEventListener('mouseup', this[resizerMouseUp]);
     window.removeEventListener('requestloadstart', this[transportStatusHandler]);
     window.removeEventListener('requestfirstbytereceived', this[transportStatusHandler]);
     window.removeEventListener('requestloadend', this[transportStatusHandler]);
@@ -546,10 +569,53 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
     this.progressMessage = message;
   }
 
+  /**
+   * @param {MouseEvent} e
+   */
+  [resizerMouseDown](e) {
+    this[isResizing] = true;
+    this[boxSize] = this.getBoundingClientRect();
+    e.preventDefault();
+    this.requestUpdate();
+  }
+
+  /**
+   * @param {MouseEvent} e
+   */
+  [resizerMouseUp](e) {
+    if (!this[isResizing]) {
+      return;
+    }
+    this[isResizing] = false;
+    this[boxSize] = undefined;
+    e.preventDefault();
+    this.requestUpdate();
+  }
+
+  /**
+   * @param {MouseEvent} e
+   */
+  [resizerMouseMove](e) {
+    if (!this[isResizing]) {
+      return;
+    }
+    const { pageY } = e;
+    const { top, height } = this[boxSize];
+    const relativeTop = pageY - top;
+    if (relativeTop < 100) {
+      return;
+    }
+    if (relativeTop > height - 100) {
+      return;
+    }
+    this.editorHeight = relativeTop;
+  }
+
   render() {
     return html`
     ${this[requestEditorTemplate]()}
     ${this[loaderTemplate]()}
+    ${this[resizeTemplate]()}
     ${this[responseTemplate]()}
     ${this[exportTemplate]()}
     ${this[requestDetailTemplate]()}
@@ -561,11 +627,23 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
    * @returns {TemplateResult} The template for the request editor view
    */
   [requestEditorTemplate]() {
-    const { compatibility, oauth2RedirectUri, loading } = this;
+    const { compatibility, oauth2RedirectUri, loading, editorHeight } = this;
     const editorRequest = /** @type ArcEditorRequest */ (this.editorRequest || {});
     const { id } = editorRequest;
     const request = /** @type ARCSavedRequest */ (editorRequest.request || {});
     const { method, ui, url, actions, payload, authorization, config, headers, _id, type } = request;
+
+    const hasHeight = typeof editorHeight === 'number';
+    const classes = {
+      panel: true,
+      'no-flex': hasHeight,
+    };
+
+    const styles = {};
+    if (hasHeight) {
+      styles.height = `${editorHeight}px`;
+    }
+
     return html`
     <arc-request-editor
       ?compatibility="${compatibility}"
@@ -586,7 +664,8 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
       .loading="${loading}"
       ?renderSend="${this.renderSend}"
       ?noSendOnLoading="${this.noSendOnLoading}"
-      class="panel"
+      class="${classMap(classes)}"
+      style="${styleMap(styles)}"
       @change="${this[requestChangeHandler]}"
       @clear="${this[requestClearHandler]}"
       @export="${this[exportRequestHandler]}"
@@ -633,6 +712,21 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
     return html`
     <progress class="loading-progress"></progress>
     ${this.progressInfo ? html`<div class="progress-info">${this.progressMessage}</div>` : ''}
+    `;
+  }
+
+  [resizeTemplate]() {
+    const active = this[isResizing];
+    const classes = {
+      'resize-handler': true,
+      active,
+    };
+    return html`
+    <div class="resize-handler-container">
+      <div class="${classMap(classes)}">
+        <arc-icon class="resize-drag" icon="dragHandle" @mousedown="${this[resizerMouseDown]}"></arc-icon>
+      </div>
+    </div>
     `;
   }
 
