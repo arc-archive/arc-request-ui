@@ -1,5 +1,6 @@
 /* eslint-disable class-methods-use-this */
 import { LitElement, html } from 'lit-element';
+import { ifDefined } from 'lit-html/directives/if-defined.js';
 import { EventsTargetMixin } from '@advanced-rest-client/events-target-mixin';
 import { v4 } from '@advanced-rest-client/uuid-generator';
 import { ArcResizableMixin } from '@advanced-rest-client/arc-resizable-mixin';
@@ -414,11 +415,6 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
     this.storedId = '';
     this.storedType = '';
     this.metaEditorEnabled = false;
-
-    TelemetryEvents.event(this, {
-      category: 'Request editor',
-      action: 'Clear request',
-    });
     this.dispatchEvent(new CustomEvent('clear'));
   }
 
@@ -1060,15 +1056,19 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
       payload,
       readOnly,
       contentType,
+      uiConfig={},
     } = this;
-    const body = payload || undefined;
+    const { body={} } = uiConfig;
+    const { model, selected } = body;
     return html`
     <body-editor
       ?hidden="${!visible}"
       ?compatibility="${compatibility}"
       ?outlined="${outlined}"
       ?readOnly="${readOnly}"
-      .value="${body}"
+      .value="${!model && payload || undefined}"
+      selected="${ifDefined(selected)}" 
+      .model="${model}"
       .contentType="${contentType}"
       @change="${this[bodyHandler]}"
       @selected="${this[bodyHandler]}"
