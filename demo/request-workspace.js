@@ -12,6 +12,7 @@ import '@advanced-rest-client/arc-models/history-data-model.js';
 import '@advanced-rest-client/arc-models/client-certificate-model.js';
 import '@advanced-rest-client/arc-models/variables-model.js';
 import '@advanced-rest-client/arc-models/auth-data-model.js';
+import '@advanced-rest-client/arc-models/websocket-url-history-model.js';
 import '@anypoint-web-components/anypoint-dialog/anypoint-dialog.js';
 import '@anypoint-web-components/anypoint-dialog/anypoint-dialog-scrollable.js';
 import '@advanced-rest-client/client-certificates/certificate-import.js';
@@ -56,6 +57,7 @@ class ComponentDemo extends DemoPage {
       'workspaceId', 'renderSend', 'progressInfo', 'noSendOnLoading',
     ]);
     this.componentName = 'ARC request workspace';
+    this.renderViewControls = true;
     this.compatibility = false;
     this.withMenu = false;
     this.initialized = false;
@@ -92,12 +94,6 @@ class ComponentDemo extends DemoPage {
     
     this.initEditors();
     listenEncoding();
-
-    this.renderViewControls = true;
-
-    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      this.darkThemeActive = true;
-    }
   }
 
   async initEditors() {
@@ -423,6 +419,7 @@ class ComponentDemo extends DemoPage {
       <client-certificate-model></client-certificate-model>
       <variables-model></variables-model>
       <auth-data-model></auth-data-model>
+      <websocket-url-history-model></websocket-url-history-model>
       <arc-data-export appVersion="demo-page"></arc-data-export>
       ${this._demoTemplate()}
       ${this._dataControlsTemplate()}

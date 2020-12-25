@@ -31,6 +31,7 @@ export default css`
 
 :host(:not(.selected):hover) {
   background-color: var(--anypoint-button-emphasis-low-hover-background-color, #fafafa);
+  z-index: 3;
 }
 
 :host(:focus) {
@@ -59,8 +60,8 @@ export default css`
 }
 
 .left-decorator-clip {
-  background-color: white;
-  clip-path: circle(11px at 0% 0%);
+  background-color: var(--workspace-tab-decorator-background-color, var(--primary-background-color, white));
+  clip-path: circle(12px at 0% 0%);
 }
 
 .right-decorator,
@@ -69,8 +70,8 @@ export default css`
 }
 
 .right-decorator-clip {
-  background-color: white;
-  clip-path: circle(11px at 12px 0%);
+  background-color: var(--workspace-tab-decorator-background-color, var(--primary-background-color, white));
+  clip-path: circle(12px at 12px 0%);
 }
 
 :host(.selected) .left-decorator, 

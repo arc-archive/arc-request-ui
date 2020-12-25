@@ -1,5 +1,6 @@
 import { ARCProject } from '@advanced-rest-client/arc-models';
 import { ArcEditorRequest, AuthMeta } from '@advanced-rest-client/arc-types/src/request/ArcRequest';
+import { WebsocketEditorRequest } from '@advanced-rest-client/arc-types/src/request/WebSocket';
 
 export declare interface ARCProjectNames extends ARCProject {
   missing: boolean;
@@ -31,12 +32,20 @@ export declare interface WorkspaceTab {
   label: string;
 }
 
-export declare interface WorkspaceRequest extends ArcEditorRequest {
-  /**
+declare interface RequestWithTab {
+ /**
    * The ID of the tab
    */
   tab: string;
 }
+
+export declare interface WorkspaceHttpRequest extends ArcEditorRequest, RequestWithTab {
+}
+
+export declare interface WorkspaceWebsocketRequest extends WebsocketEditorRequest, RequestWithTab {
+}
+
+export declare type WorkspaceRequest = WorkspaceHttpRequest | WorkspaceWebsocketRequest;
 
 export declare interface AddRequestOptions {
   /**

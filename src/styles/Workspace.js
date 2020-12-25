@@ -18,7 +18,7 @@ export default css`
   overflow: hidden;
 }
 
-arc-request-panel {
+.request-panel {
   flex: 1;
   outline: none;
 }
@@ -78,5 +78,15 @@ arc-request-panel {
 
 .drop-pointer::before {
   content: "⇧";
+}
+
+.add-panel-list {
+  box-shadow: var(--anypoint-menu-button-context-shadow, var(--anypoint-dropdown-shadow));
+  border-radius: var(--anypoint-menu-button-border-radius, 12px);
+  padding: 8px 0;
+}
+
+.add-panel-list anypoint-item {
+  padding: 0 24px;
 }
 `;

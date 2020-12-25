@@ -41,7 +41,8 @@ export default css`
   position: absolute;
   bottom: 0;
   width: 90%;
-  background-color: #fff9c4;
+  background-color: var(--progress-info-background-color, #fff9c4);
+  color: var(--progress-info-color, #000);
   border-radius: 8px 8px 0 0;
   padding: 20px;
   left: 5%;
@@ -68,7 +69,7 @@ export default css`
 
 .resize-handler:hover,
 .resize-handler.active {
-  background-color: rgba(226, 226, 226, 0.74);
+  background-color: var(--request-panel-resizer-active-background-color, rgba(226, 226, 226, 0.74));
 }
 
 .resize-handler:hover .resize-drag,

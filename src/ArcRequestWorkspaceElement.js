@@ -9,7 +9,11 @@ import { TransportEventTypes, WorkspaceEvents } from '@advanced-rest-client/arc-
 import { ArcModelEvents } from '@advanced-rest-client/arc-models';
 import { BodyProcessor } from '@advanced-rest-client/body-editor';
 import '@anypoint-web-components/anypoint-button/anypoint-icon-button.js';
+import '@anypoint-web-components/anypoint-listbox/anypoint-listbox.js';
+import '@anypoint-web-components/anypoint-dropdown/anypoint-dropdown.js';
+import '@anypoint-web-components/anypoint-item/anypoint-item.js';
 import '@advanced-rest-client/arc-icons/arc-icon.js';
+import '@advanced-rest-client/arc-websocket/arc-websocket-panel.js';
 import elementStyles from './styles/Workspace.js';
 import '../arc-request-panel.js';
 import '../workspace-tab.js'
@@ -19,13 +23,21 @@ import '../workspace-tabs.js'
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ARCSavedRequest} ARCSavedRequest */
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ARCHistoryRequest} ARCHistoryRequest */
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.RequestConfig} RequestConfig */
+/** @typedef {import('@advanced-rest-client/arc-types').WebSocket.WebsocketRequest} WebsocketRequest */
+/** @typedef {import('@advanced-rest-client/arc-types').WebSocket.WebsocketStoredRequest} WebsocketStoredRequest */
 /** @typedef {import('@advanced-rest-client/arc-types').Workspace.DomainWorkspace} DomainWorkspace */
+/** @typedef {import('@advanced-rest-client/arc-types').Workspace.WorkspaceRequestUnion} WorkspaceRequestUnion */
 /** @typedef {import('@advanced-rest-client/arc-types').DataExport.ArcExportObject} ArcExportObject */
 /** @typedef {import('@advanced-rest-client/arc-events').ApiTransportEvent} ApiTransportEvent */
+/** @typedef {import('@advanced-rest-client/arc-websocket').ArcWebsocketPanelElement} ArcWebsocketPanelElement */
+/** @typedef {import('@anypoint-web-components/anypoint-button').AnypointIconButton} AnypointIconButton */
+/** @typedef {import('@anypoint-web-components/anypoint-listbox').AnypointListbox} AnypointListbox */
 /** @typedef {import('lit-element').TemplateResult} TemplateResult */
 /** @typedef {import('./types').WorkspaceTab} WorkspaceTab */
 /** @typedef {import('./types').AddRequestOptions} AddRequestOptions */
 /** @typedef {import('./types').WorkspaceRequest} WorkspaceRequest */
+/** @typedef {import('./types').WorkspaceHttpRequest} WorkspaceHttpRequest */
+/** @typedef {import('./types').WorkspaceWebsocketRequest} WorkspaceWebsocketRequest */
 /** @typedef {import('./ArcRequestPanelElement').ArcRequestPanelElement} ArcRequestPanelElement */
 /** @typedef {import('./WorkspaceTabsElement').WorkspaceTabsElement} WorkspaceTabsElement */
 /** @typedef {import('./WorkspaceTabElement').WorkspaceTabElement} WorkspaceTabElement */
@@ -39,6 +51,8 @@ export const tabsTemplate = Symbol('tabsTemplate');
 export const tabTemplate = Symbol('tabTemplate');
 export const panelsTemplate = Symbol('panelsTemplate');
 export const panelTemplate = Symbol('panelTemplate');
+export const httpPanelTemplate = Symbol('httpPanelTemplate');
+export const wsPanelTemplate = Symbol('wsPanelTemplate');
 export const closeRequestHandler = Symbol('closeRequestHandler');
 export const tabsSelectionHandler = Symbol('tabsSelectionHandler');
 export const requestChangeHandler = Symbol('requestChangeHandler');
@@ -51,7 +65,6 @@ export const readTabLabel = Symbol('readTabLabel');
 export const storeWorkspace = Symbol('storeWorkspace');
 export const storeTimeoutValue = Symbol('storeTimeoutValue');
 export const syncWorkspaceRequests = Symbol('syncWorkspaceRequests');
-export const addNewHandler = Symbol('addNewHandler');
 export const panelCloseHandler = Symbol('panelCloseHandler');
 export const panelDuplicateHandler = Symbol('panelDuplicateHandler');
 export const tabsDragOverHandler = Symbol('tabsDragOverHandler');
@@ -71,6 +84,17 @@ export const newTabDragover = Symbol('newTabDragover');
 export const resetReorderChildren = Symbol('resetReorderChildren');
 export const computeDropOrder = Symbol('computeDropOrder');
 export const transportHandler = Symbol('transportHandler');
+export const tabTypeSelector = Symbol('tabTypeSelector');
+export const addButtonRef = Symbol('addButtonRef');
+export const addButtonTimeout = Symbol('addButtonTimeout');
+export const addButtonCallback = Symbol('addButtonCallback');
+export const addButtonMousedownHandler = Symbol('addButtonMousedownHandler');
+export const addButtonMouseupHandler = Symbol('addButtonMouseupHandler');
+export const addButtonSelectorOpened = Symbol('addButtonSelectorOpened');
+export const addButtonSelectorSelectedHandler = Symbol('addButtonSelectorSelectedHandler');
+export const addButtonSelectorClosedHandler = Symbol('addButtonSelectorClosedHandler');
+
+const AddTypeSelectorDelay = 700;
 
 export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMixin(LitElement)) {
   static get styles() {
@@ -160,8 +184,10 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     this.storeTimeout = 500;
     this.renderSend = false;
     this.progressInfo = false;
+    this[addButtonSelectorOpened] = false;
 
     this[transportHandler] = this[transportHandler].bind(this);
+    this[addButtonCallback] = this[addButtonCallback].bind(this);
   }
 
   connectedCallback() {
@@ -176,6 +202,14 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
   disconnectedCallback() {
     super.disconnectedCallback();
     this.removeEventListener(TransportEventTypes.request, this[transportHandler]);
+  }
+
+  /**
+   * @param {Map<string | number | symbol, unknown>} args
+   */
+  firstUpdated(args) {
+    super.firstUpdated(args);
+    this[addButtonRef] = /** @type AnypointIconButton */ (this.shadowRoot.querySelector('.add-request-button'))
   }
 
   /**
@@ -279,11 +313,11 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
   }
 
   /**
-   * @param {(ArcBaseRequest|ARCSavedRequest|ARCHistoryRequest)[]} requests
+   * @param {WorkspaceRequestUnion[]} requests
    */
   [restoreRequests](requests) {
     if (!Array.isArray(requests) || !requests.length) {
-      this.addEmpty();
+      this.addHttpRequest();
       return;
     }
     requests.forEach((request) => this.add(request, { noAutoSelect: true, skipPositionCheck: true, skipUpdate: true, skipStore: true,}));
@@ -291,7 +325,7 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
 
   /**
    * Adds new request to the workspace.
-   * @param {ArcBaseRequest|ARCSavedRequest|ARCHistoryRequest} request
+   * @param {WorkspaceRequestUnion} request
    * @param {AddRequestOptions} [options={}] Append options
    * @returns {number} The index at which the request was inserted.
    */
@@ -327,13 +361,25 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
   }
 
   /**
-   * Adds an empty request to the workspace.
+   * Adds an empty HTTP request to the workspace.
    * @returns {number} The index at which the request was inserted.
    */
-  addEmpty() {
+  addHttpRequest() {
     return this.add({
+      kind: 'ARC#HttpRequest',
       method: 'GET',
       url: 'http://'
+    });
+  }
+
+  /**
+   * Adds an empty web socket request to the workspace.
+   * @returns {number} The index at which the request was inserted.
+   */
+  addWsRequest() {
+    return this.add({
+      kind: 'ARC#WebsocketRequest',
+      url: 'ws://'
     });
   }
 
@@ -342,7 +388,7 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
    * If the position is out of `activeRequests` bounds.
    * 
    * @param {number} index The position of the tab where to put the request
-   * @param {ArcBaseRequest|ARCSavedRequest|ARCHistoryRequest} request Request object to put.
+   * @param {WorkspaceRequestUnion} request Request object to put.
    * @param {AddRequestOptions=} options Add request options
    * 
    * @returns {number} The position at which the tab was inserted. It might be different than requested when the index is out of bounds.
@@ -553,7 +599,7 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
       this.selected -= 1;
     }
     if (!tabs.length) {
-      requestAnimationFrame(() => this.addEmpty());
+      requestAnimationFrame(() => this.addHttpRequest());
     }
     this[workspaceValue].selected = this.selected;
     this.store();
@@ -569,7 +615,14 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     if (!Array.isArray(requests) || !requests.length) {
       return result;
     }
-    result = requests.findIndex((item) => (!item.request.url || item.request.url === 'http://') && !item.request.headers && !item.request.payload);
+    result = requests.findIndex((item) => {
+      const { request } = item;
+      if (request.kind === 'ARC#WebsocketRequest') {
+        return (!request.url || request.url === 'ws://');
+      }
+      const typedHttp = /** @type ArcBaseRequest */ (request);
+      return (!request.url || request.url === 'http://') && !typedHttp.headers && !typedHttp.payload;
+    });
     return result;
   }
 
@@ -630,7 +683,19 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
   }
 
   /**
-   * @returns {ArcRequestPanelElement|undefined}
+   * @param {string} tabId
+   * @returns {WorkspaceRequest|undefined}
+   */
+  findRequestByTab(tabId) {
+    const requests = this[requestsValue];
+    if (!Array.isArray(requests) || !requests.length) {
+      return undefined;
+    }
+    return requests.find((item) => item.tab === tabId);
+  }
+
+  /**
+   * @returns {ArcRequestPanelElement|ArcWebsocketPanelElement|undefined}
    */
   getActivePanel() {
     const tab = this[tabsValue][this.selected];
@@ -638,7 +703,7 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
       return undefined;
     }
     const { id } = tab
-    return /** @type ArcRequestPanelElement */ (this.shadowRoot.querySelector(`arc-request-panel[data-tab="${id}"]`));
+    return /** @type ArcRequestPanelElement|ArcWebsocketPanelElement */ (this.shadowRoot.querySelector(`.request-panel[data-tab="${id}"]`));
   }
 
   /**
@@ -646,7 +711,18 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
    */
   sendCurrent() {
     const panel = this.getActivePanel();
-    panel.send();
+    const tab = this[tabsValue][this.selected];
+    const workspaceRequest = this.findRequestByTab(tab.id);
+    if (workspaceRequest.request.kind === 'ARC#WebsocketRequest') {
+      const wsPanel = /** @type ArcWebsocketPanelElement */ (panel);
+      if (wsPanel.connected) {
+        wsPanel.send();
+      } else {
+        wsPanel.connect();
+      }
+    } else {
+      panel.send();
+    }
   }
   
   /**
@@ -654,7 +730,15 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
    */
   abortCurrent() {
     const panel = this.getActivePanel();
-    panel.abort();
+    const tab = this[tabsValue][this.selected];
+    const workspaceRequest = this.findRequestByTab(tab.id);
+    if (workspaceRequest.request.kind === 'ARC#WebsocketRequest') {
+      const wsPanel = /** @type ArcWebsocketPanelElement */ (panel);
+      wsPanel.disconnect();
+    } else {
+      const httpPanel = /** @type ArcRequestPanelElement */ (panel);
+      httpPanel.abort();
+    }
   }
 
   /**
@@ -669,10 +753,16 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
    * Aborts all running requests
    */
   abortAll() {
-    const nodes = this.shadowRoot.querySelectorAll('arc-request-panel');
-    Array.from(nodes).forEach((panel) => {
-      if (panel.loading) {
-        panel.abort();
+    const nodes = /** @type {(ArcRequestPanelElement|ArcWebsocketPanelElement)[]} */ (Array.from(this.shadowRoot.querySelectorAll('arc-request-panel,arc-websocket-panel')));
+    nodes.forEach((panel) => {
+      if (panel.localName === 'arc-websocket-panel') {
+        const wsPanel = /** @type ArcWebsocketPanelElement */ (panel);
+        wsPanel.disconnect();
+      } else {
+        const httpPanel = /** @type ArcRequestPanelElement */ (panel);
+        if (httpPanel.loading) {
+          httpPanel.abort();
+        }
       }
     });
   }
@@ -704,7 +794,10 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
    */
   saveOpened() {
     const panel = this.getActivePanel();
-    panel.saveAction();
+    if (panel.localName === 'arc-request-panel') {
+      const httpPanel = /** @type ArcRequestPanelElement */ (panel);
+      httpPanel.saveAction();
+    }
   }
 
   /**
@@ -712,7 +805,10 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
    */
   saveAsOpened() {
     const panel = this.getActivePanel();
-    panel.saveAsAction();
+    if (panel.localName === 'arc-request-panel') {
+      const httpPanel = /** @type ArcRequestPanelElement */ (panel);
+      httpPanel.saveAsAction();
+    }
   }
 
   /**
@@ -728,7 +824,7 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
   /**
    * Adds a new tab to the tabs list.
    * Note, this function does not call `requestUpdate()`.
-   * @param {ArcBaseRequest|ARCSavedRequest|ARCHistoryRequest} request The request that is associated with the tab
+   * @param {WorkspaceRequestUnion} request The request that is associated with the tab
    * @returns {string} The id of the created tab
    */
   [addTab](request) {
@@ -740,12 +836,11 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
   /**
    * Creates a definition of a tab.
    * 
-   * @param {ArcBaseRequest|ARCSavedRequest|ARCHistoryRequest} request The request that is associated with the tab
+   * @param {WorkspaceRequestUnion} request The request that is associated with the tab
    * @returns {WorkspaceTab} The definition of a tab.
    */
   [createTab](request) {
-    const typed = /** @type ARCSavedRequest */ (request);
-    const label = this[readTabLabel](typed);
+    const label = this[readTabLabel](request);
     return {
       id: v4(),
       label,
@@ -757,24 +852,34 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
    * Note, this function does not call `requestUpdate()`.
    * 
    * @param {string} id The id of the tab to update
-   * @param {ArcBaseRequest|ARCSavedRequest|ARCHistoryRequest} request The request that is associated with the tab
+   * @param {WorkspaceRequestUnion} request The request that is associated with the tab
    */
   [updateTab](id, request) {
     const tab = this[tabsValue].find((item) => item.id === id);
     if (!tab) {
       return;
     }
-    const typed = /** @type ARCSavedRequest */ (request);
-    tab.label = this[readTabLabel](typed);
+    tab.label = this[readTabLabel](request);
   }
 
   /**
-   * @param {ARCSavedRequest} request
+   * @param {WorkspaceRequestUnion} request
    * @returns {string} The label for the tab for a given request.
    */
   [readTabLabel](request) {
-    if (request.name) {
-      return request.name;
+    if (request.kind === 'ARC#WebsocketRequest') {
+      const storedWs = /** @type WebsocketStoredRequest */ (request);
+      if (storedWs.name) {
+        return storedWs.name;
+      }
+      if (request.url && request.url !== 'ws://' && request.url.length > 5) {
+        return request.url;
+      }
+      return 'New socket';
+    }
+    const typedSaved = /** @type ARCSavedRequest */ (request);
+    if (typedSaved.name) {
+      return typedSaved.name;
     }
     if (request.url && request.url !== 'http://' && request.url.length > 6) {
       return request.url;
@@ -821,8 +926,11 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     this.notifyResize();
   }
 
+  /**
+   * @param {Event} e
+   */
   [requestChangeHandler](e) {
-    const panel = /** @type ArcRequestPanelElement */ (e.target);
+    const panel = /** @type ArcRequestPanelElement|ArcWebsocketPanelElement */ (e.target);
     const request = panel.editorRequest;
     const tabId = panel.dataset.tab;
     const index = Number(panel.dataset.index);
@@ -847,21 +955,27 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     if (!tab) {
       return;
     }
-    const requests = this[requestsValue];
+    const requests = /** @type WorkspaceRequest[] */ (this[requestsValue]);
     const requestIndex = requests.findIndex((item) => item.tab === tab.id);
     if (requestIndex === -1) {
       return;
     }
     const request = requests[requestIndex];
-    const typed = /** @type ARCSavedRequest */ (request.request);
+    const typed = /** @type ARCSavedRequest|WebsocketStoredRequest */ (request.request);
     const dt = e.dataTransfer;
     if (typed._id) {
       dt.setData('arc/id', typed._id);
-      dt.setData('arc/type', typed.type);
-      if (typed.type === 'history') {
-        dt.setData('arc/history', '1');
-      } else if (typed.type === 'saved') {
-        dt.setData('arc/saved', '1');
+      if (typed.kind === 'ARC#WebsocketRequest') {
+        dt.setData('arc/type', 'websocket');
+        dt.setData('arc/websocket', '1');
+      } else {
+        dt.setData('arc/http', '1');
+        dt.setData('arc/type', typed.type);
+        if (typed.type === 'history') {
+          dt.setData('arc/history', '1');
+        } else if (typed.type === 'saved') {
+          dt.setData('arc/saved', '1');
+        }
       }
     }
     dt.setData('arc/request', '1');
@@ -1127,8 +1241,7 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
       return;
     }
     this.shadowRoot.removeChild(this[dropPointer]);
-    this[dropPointer] = undefined;
-    
+    this[dropPointer] = undefined; 
   }
 
   /**
@@ -1167,11 +1280,6 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     this[createDropPointer](ref);
   }
 
-  [addNewHandler](e) {
-    this.addEmpty();
-    e.currentTarget.blur();
-  }
-
   /**
    * A handler for the `close` event dispatched by the request panel. Closes the panel.
    * @param {Event} e
@@ -1196,10 +1304,74 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     this.duplicateTab(index);
   }
 
+  /**
+   * It starts a timer to render a dropdown menu with the editor type options.
+   * When the user release the button in less than `AddTypeSelectorDelay` ms then
+   * the callback is canceled and the HTTP request editor is added, as a default editor.
+   * When the callback is called a dropdown is rendered and the user can choose the type of the editor.
+   */
+  [addButtonMousedownHandler]() {
+    if (this[addButtonTimeout]) {
+      clearTimeout(this[addButtonTimeout]);
+    }
+    this[addButtonTimeout] = setTimeout(this[addButtonCallback], AddTypeSelectorDelay);
+  }
+
+  /**
+   * Checks whether a mouse up timer is set. If so, this is a regular `click` event and it adds the 
+   * default HTTP request editor. Otherwise it does nothing.
+   * @param {Event} e
+   */
+  [addButtonMouseupHandler](e) {
+    if (!this[addButtonTimeout]) {
+      return;
+    }
+    // meaning this is happening before the type selector was triggered.
+    // clears the type selector timeout and adds HTTP request (default behavior).
+    clearTimeout(this[addButtonTimeout]);
+    this[addButtonTimeout] = undefined;
+    this.addHttpRequest();
+    /** @type HTMLElement */ (e.currentTarget).blur();
+  }
+
+  /**
+   * This is called when the user long press the add tab button. 
+   * It triggers the view to render the editor type dropdown menu.
+   */
+  [addButtonCallback]() {
+    this[addButtonTimeout] = undefined;
+    this[addButtonSelectorOpened] = true;
+    this.requestUpdate();
+  }
+
+  /**
+   * The handler for the dropdown selector for the editor type.
+   * Adds a new tab with the selected type of the request.
+   * 
+   * @param {Event} e
+   */
+  [addButtonSelectorSelectedHandler](e) {
+    const list = /** @type AnypointListbox */ (e.target);
+    switch (list.selected) {
+      case 0: this.addHttpRequest(); break;
+      case 1: this.addWsRequest(); break;
+      default:
+    }
+    list.selected = undefined;
+    this[addButtonSelectorOpened] = false;
+    this.requestUpdate();
+  }
+
+  [addButtonSelectorClosedHandler]() {
+    this[addButtonSelectorOpened] = false;
+    this.requestUpdate();
+  }
+
   render() {
     return html`
     ${this[tabsTemplate]()}
     ${this[panelsTemplate]()}
+    ${this[tabTypeSelector]()}
     `
   }
 
@@ -1222,10 +1394,11 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
       ${items.map((item, index) => this[tabTemplate](item, index))}
       <anypoint-icon-button
         class="add-request-button"
-        @click="${this[addNewHandler]}"
-        title="Add a new request to the workspace"
-        aria-label="Activate to add new request"
+        title="Add a new tab. Long press for options."
+        aria-label="Activate to add new request. Long press for options."
         slot="suffix"
+        @mousedown="${this[addButtonMousedownHandler]}"
+        @mouseup="${this[addButtonMouseupHandler]}"
       >
         <arc-icon icon="add"></arc-icon>
       </anypoint-icon-button>
@@ -1281,6 +1454,21 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
    * @returns {TemplateResult} The template for a request panel
    */
   [panelTemplate](request, index, selectedTabId) {
+    if (request.request.kind === 'ARC#WebsocketRequest') {
+      const wsRequest = /** @type WorkspaceWebsocketRequest */ (request);
+      return this[wsPanelTemplate](wsRequest, index, selectedTabId);
+    }
+    const httpRequest = /** @type WorkspaceHttpRequest */ (request);
+    return this[httpPanelTemplate](httpRequest, index, selectedTabId);
+  }
+
+  /**
+   * @param {WorkspaceHttpRequest} request The request to render
+   * @param {number} index Request index in the requests array
+   * @param {string} selectedTabId The id of the selected tab.
+   * @returns {TemplateResult} The template for a request panel
+   */
+  [httpPanelTemplate](request, index, selectedTabId) {
     const visible = request.tab === selectedTabId;
     return html`
     <arc-request-panel
@@ -1294,12 +1482,56 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
       @change="${this[requestChangeHandler]}"
       @close="${this[panelCloseHandler]}"
       @duplicate="${this[panelDuplicateHandler]}"
-      class="stacked"
+      class="stacked request-panel"
       data-index="${index}"
       data-tab="${request.tab}"
       boundEvents
       tabindex="0"
     ></arc-request-panel>
+    `;
+  }
+
+  /**
+   * @param {WorkspaceWebsocketRequest} request The request to render
+   * @param {number} index Request index in the requests array
+   * @param {string} selectedTabId The id of the selected tab.
+   * @returns {TemplateResult} The template for a request panel
+   */
+  [wsPanelTemplate](request, index, selectedTabId) {
+    const visible = request.tab === selectedTabId;
+    return html`
+    <arc-websocket-panel
+      ?hidden="${!visible}"
+      ?compatibility="${this.compatibility}"
+      .editorRequest="${request}"
+      @change="${this[requestChangeHandler]}"
+      class="stacked request-panel"
+      data-index="${index}"
+      data-tab="${request.tab}"
+      boundEvents
+      tabindex="0"
+    ></arc-websocket-panel>
+    `;
+  }
+
+  /**
+   * @returns {TemplateResult} The template for the drop down with add request panel type selector.
+   */
+  [tabTypeSelector]() {
+    const { compatibility } = this;
+    return html`
+    <anypoint-dropdown 
+      noCancelOnOutsideClick
+      .positionTarget="${this[addButtonRef]}" 
+      ?opened="${this[addButtonSelectorOpened]}"
+      @closed="${this[addButtonSelectorClosedHandler]}"
+      class="add-panel-type"
+    >
+      <anypoint-listbox slot="dropdown-content" class="add-panel-list" ?compatibility="${compatibility}" @selected="${this[addButtonSelectorSelectedHandler]}">
+        <anypoint-item ?compatibility="${compatibility}">HTTP request</anypoint-item>
+        <anypoint-item ?compatibility="${compatibility}">Web socket</anypoint-item>
+      </anypoint-listbox>
+    </anypoint-dropdown>
     `;
   }
 }

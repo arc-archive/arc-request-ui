@@ -3,11 +3,12 @@ import { ArcResizableMixin } from '@advanced-rest-client/arc-resizable-mixin';
 import { EventsTargetMixin } from '@advanced-rest-client/events-target-mixin';
 import { WorkspaceTabElement } from './WorkspaceTabElement';
 import { ArcRequestPanelElement } from './ArcRequestPanelElement';
-import { WorkspaceTab, AddRequestOptions, WorkspaceRequest } from './types';
+import { WorkspaceTab, AddRequestOptions, WorkspaceRequest, WorkspaceHttpRequest, WorkspaceWebsocketRequest } from './types';
 import { ApiTransportEvent } from '@advanced-rest-client/arc-events';
-import { DomainWorkspace } from '@advanced-rest-client/arc-types/src/domain/Workspace';
-import { ArcBaseRequest, ARCHistoryRequest, ARCSavedRequest } from '@advanced-rest-client/arc-models';
+import { DomainWorkspace, WorkspaceRequestUnion } from '@advanced-rest-client/arc-types/src/domain/Workspace';
+import { ARCSavedRequest } from '@advanced-rest-client/arc-models';
 import { ArcExportObject } from '@advanced-rest-client/arc-types/src/dataexport/DataExport';
+import { ArcWebsocketPanelElement } from '@advanced-rest-client/arc-websocket';
 
 export declare const addTab: unique symbol;
 export declare const createTab: unique symbol;
@@ -18,6 +19,8 @@ export declare const tabsTemplate: unique symbol;
 export declare const tabTemplate: unique symbol;
 export declare const panelsTemplate: unique symbol;
 export declare const panelTemplate: unique symbol;
+export declare const httpPanelTemplate: unique symbol;
+export declare const wsPanelTemplate: unique symbol;
 export declare const closeRequestHandler: unique symbol;
 export declare const tabsSelectionHandler: unique symbol;
 export declare const requestChangeHandler: unique symbol;
@@ -50,6 +53,15 @@ export declare const newTabDragover: unique symbol;
 export declare const resetReorderChildren: unique symbol;
 export declare const computeDropOrder: unique symbol;
 export declare const transportHandler: unique symbol;
+export declare const tabTypeSelector: unique symbol;
+export declare const addButtonRef: unique symbol;
+export declare const addButtonTimeout: unique symbol;
+export declare const addButtonCallback: unique symbol;
+export declare const addButtonMousedownHandler: unique symbol;
+export declare const addButtonMouseupHandler: unique symbol;
+export declare const addButtonSelectorOpened: unique symbol;
+export declare const addButtonSelectorSelectedHandler: unique symbol;
+export declare const addButtonSelectorClosedHandler: unique symbol;
 
 export declare class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMixin(LitElement)) {
   static get styles(): CSSResult;
@@ -116,6 +128,8 @@ export declare class ArcRequestWorkspaceElement extends ArcResizableMixin(Events
 
   disconnectedCallback(): void;
 
+  firstUpdated(args: Map<string | number | symbol, unknown>): void;
+
   /**
    * A handler for the request transport event.
    * It updates request configuration to add configuration from the workspace.
@@ -145,7 +159,7 @@ export declare class ArcRequestWorkspaceElement extends ArcResizableMixin(Events
    */
   processWorkspace(workspace: DomainWorkspace): void;
 
-  [restoreRequests](requests: (ArcBaseRequest|ARCSavedRequest|ARCHistoryRequest)[]): void;
+  [restoreRequests](requests: WorkspaceRequestUnion[]): void;
 
   /**
    * Adds new request to the workspace.
@@ -153,13 +167,19 @@ export declare class ArcRequestWorkspaceElement extends ArcResizableMixin(Events
    * @param [options={}] Append options
    * @returns The index at which the request was inserted.
    */
-  add(request: ArcBaseRequest|ARCSavedRequest|ARCHistoryRequest, options?: AddRequestOptions): number;
+  add(request: WorkspaceRequestUnion, options?: AddRequestOptions): number;
 
   /**
-   * Adds an empty request to the workspace.
+   * Adds an empty HTTP request to the workspace.
    * @returns The index at which the request was inserted.
    */
-  addEmpty(): number;
+  addHttpRequest(): number;
+
+  /**
+   * Adds an empty web socket request to the workspace.
+   * @returns The index at which the request was inserted.
+   */
+  addWsRequest(): number;
 
   /**
    * Adds a request at specific position moving the request at the position to the right.
@@ -171,7 +191,7 @@ export declare class ArcRequestWorkspaceElement extends ArcResizableMixin(Events
    * 
    * @returns The position at which the tab was inserted. It might be different than requested when the index is out of bounds.
    */
-  addAt(index: number, request: ArcBaseRequest|ARCSavedRequest|ARCHistoryRequest, options?: AddRequestOptions): number;
+  addAt(index: number, request: WorkspaceRequestUnion, options?: AddRequestOptions): number;
 
   /**
    * Adds a request at specific position moving the request at the position to the right.
@@ -264,7 +284,12 @@ export declare class ArcRequestWorkspaceElement extends ArcResizableMixin(Events
    */
   findRequestIndex(requestId: string): number;
 
-  getActivePanel(): ArcRequestPanelElement|undefined;
+  /**
+   * @param {string} tabId
+   */
+  findRequestByTab(tabId: string): WorkspaceRequest;
+
+  getActivePanel(): ArcRequestPanelElement|ArcWebsocketPanelElement|undefined;
 
   /**
    * Runs the currently active tab.
@@ -313,7 +338,7 @@ export declare class ArcRequestWorkspaceElement extends ArcResizableMixin(Events
    * @param request The request that is associated with the tab
    * @returns The id of the created tab
    */
-  [addTab](request: ArcBaseRequest|ARCSavedRequest|ARCHistoryRequest): string;
+  [addTab](request: WorkspaceRequestUnion): string;
 
   /**
    * Creates a definition of a tab.
@@ -321,7 +346,7 @@ export declare class ArcRequestWorkspaceElement extends ArcResizableMixin(Events
    * @param request The request that is associated with the tab
    * @returns The definition of a tab.
    */
-  [createTab](request: ArcBaseRequest|ARCSavedRequest|ARCHistoryRequest): WorkspaceTab;
+  [createTab](request: WorkspaceRequestUnion): WorkspaceTab;
 
   /**
    * Updates the tab value from the request.
@@ -330,7 +355,7 @@ export declare class ArcRequestWorkspaceElement extends ArcResizableMixin(Events
    * @param id The id of the tab to update
    * @param request The request that is associated with the tab
    */
-  [updateTab](id: string, request: ArcBaseRequest|ARCSavedRequest|ARCHistoryRequest): void;
+  [updateTab](id: string, request: WorkspaceRequestUnion): void;
 
   /**
    * @param request
@@ -433,8 +458,6 @@ export declare class ArcRequestWorkspaceElement extends ArcResizableMixin(Events
    */
   [newTabDragover](e: DragEvent): void;
 
-  [addNewHandler](e: Event): void;
-
   /**
    * A handler for the `close` event dispatched by the request panel. Closes the panel.
    */
@@ -444,6 +467,34 @@ export declare class ArcRequestWorkspaceElement extends ArcResizableMixin(Events
    * A handler for the `duplicate` event dispatched by the request panel. 
    */
   [panelDuplicateHandler](e: Event): void;
+
+  /**
+   * It starts a timer to render a dropdown menu with the editor type options.
+   * When the user release the button in less than `AddTypeSelectorDelay` ms then
+   * the callback is canceled and the HTTP request editor is added, as a default editor.
+   * When the callback is called a dropdown is rendered and the user can choose the type of the editor.
+   */
+  [addButtonMousedownHandler](): void;
+
+  /**
+   * Checks whether a mouse up timer is set. If so, this is a regular `click` event and it adds the 
+   * default HTTP request editor. Otherwise it does nothing.
+   */
+  [addButtonMouseupHandler](e: Event): void;
+
+  /**
+   * This is called when the user long press the add tab button. 
+   * It triggers the view to render the editor type dropdown menu.
+   */
+  [addButtonCallback](): void;
+
+  /**
+   * The handler for the dropdown selector for the editor type.
+   * Adds a new tab with the selected type of the request.
+   */
+  [addButtonSelectorSelectedHandler](e: Event): void;
+
+  [addButtonSelectorClosedHandler](): void;
 
   render(): TemplateResult;
 
@@ -471,4 +522,25 @@ export declare class ArcRequestWorkspaceElement extends ArcResizableMixin(Events
    * @returns The template for a request panel
    */
   [panelTemplate](request: WorkspaceRequest, index: number, selectedTabId: string): TemplateResult;
+
+  /**
+   * @param request The request to render
+   * @param index Request index in the requests array
+   * @param selectedTabId The id of the selected tab.
+   * @returns The template for a request panel
+   */
+  [httpPanelTemplate](request: WorkspaceHttpRequest, index: number, selectedTabId: string): TemplateResult;
+
+  /**
+   * @param request The request to render
+   * @param index Request index in the requests array
+   * @param selectedTabId The id of the selected tab.
+   * @returns The template for a request panel
+   */
+  [wsPanelTemplate](request: WorkspaceWebsocketRequest, index: number, selectedTabId: string): TemplateResult;
+
+  /**
+   * @returns The template for the drop down with add request panel type selector.
+   */
+  [tabTypeSelector](): TemplateResult;
 }

@@ -9,6 +9,7 @@ import { ArcModelEvents, ArcModelEventTypes } from '@advanced-rest-client/arc-mo
 import '@advanced-rest-client/arc-response/response-view.js';
 import '@advanced-rest-client/arc-ie/export-options.js';
 import '@advanced-rest-client/bottom-sheet/bottom-sheet.js';
+import '@advanced-rest-client/arc-icons/arc-icon.js';
 import elementStyles from './styles/Panel.js';
 import '../arc-request-editor.js';
 import '../request-meta-details.js';
@@ -277,7 +278,7 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
   }
 
   /**
-   * Calls `clearRequest()` method of the `request-editor`
+   * Calls `reset()` method of the editor
    */
   clear() {
     this.editor.reset();
@@ -445,7 +446,7 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
     try {
       const result = await ExportEvents.nativeData(this, data, options, provider);
       if (!result) {
-        throw new Error('Certificates: Export module not found');
+        throw new Error('Request panel: Export module not found');
       }
       // if (detail.options.provider === 'drive') {
       //   // TODO: Render link to the folder
@@ -453,6 +454,7 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
       // }
     } catch (err) {
       // this[handleException](e.message);
+      TelemetryEvents.exception(this, err.message, false);
     }
     TelemetryEvents.event(this, {
       category: 'Request panel',
@@ -639,7 +641,9 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
       'no-flex': hasHeight,
     };
 
-    const styles = {};
+    const styles = {
+      height: undefined,
+    };
     if (hasHeight) {
       styles.height = `${editorHeight}px`;
     }
