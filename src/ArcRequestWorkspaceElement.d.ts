@@ -62,6 +62,8 @@ export declare const addButtonMouseupHandler: unique symbol;
 export declare const addButtonSelectorOpened: unique symbol;
 export declare const addButtonSelectorSelectedHandler: unique symbol;
 export declare const addButtonSelectorClosedHandler: unique symbol;
+export declare const webUrlTemplate: unique symbol;
+export declare const sessionUrlInputHandler: unique symbol;
 
 export declare class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMixin(LitElement)) {
   static get styles(): CSSResult;
@@ -121,6 +123,12 @@ export declare class ArcRequestWorkspaceElement extends ArcResizableMixin(Events
    */
   [tabsValue]: WorkspaceTab[];
   [requestsValue]: WorkspaceRequest[];
+
+  /**
+   * An URL to be present in the session URL input when opened.
+   * The input can be opened by calling `openWebUrlInput()`
+   */
+  webSessionUrl?: string;
 
   constructor();
 
@@ -333,6 +341,11 @@ export declare class ArcRequestWorkspaceElement extends ArcResizableMixin(Events
   closeActiveTab(): void;
 
   /**
+   * Opens the input for opening web app to start a web session.
+   */
+  openWebUrlInput(): void;
+
+  /**
    * Adds a new tab to the tabs list.
    * Note, this function does not call `requestUpdate()`.
    * @param request The request that is associated with the tab
@@ -496,6 +509,8 @@ export declare class ArcRequestWorkspaceElement extends ArcResizableMixin(Events
 
   [addButtonSelectorClosedHandler](): void;
 
+  [sessionUrlInputHandler](e: Event): void;
+
   render(): TemplateResult;
 
   /**
@@ -543,4 +558,9 @@ export declare class ArcRequestWorkspaceElement extends ArcResizableMixin(Events
    * @returns The template for the drop down with add request panel type selector.
    */
   [tabTypeSelector](): TemplateResult;
+
+  /**
+   * @returns The template for the web session URL input.
+   */
+  [webUrlTemplate](): TemplateResult;
 }

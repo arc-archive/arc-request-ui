@@ -14,6 +14,7 @@ import '@anypoint-web-components/anypoint-dropdown/anypoint-dropdown.js';
 import '@anypoint-web-components/anypoint-item/anypoint-item.js';
 import '@advanced-rest-client/arc-icons/arc-icon.js';
 import '@advanced-rest-client/arc-websocket/arc-websocket-panel.js';
+import '@advanced-rest-client/arc-url/web-url-input.js';
 import elementStyles from './styles/Workspace.js';
 import '../arc-request-panel.js';
 import '../workspace-tab.js'
@@ -93,6 +94,8 @@ export const addButtonMouseupHandler = Symbol('addButtonMouseupHandler');
 export const addButtonSelectorOpened = Symbol('addButtonSelectorOpened');
 export const addButtonSelectorSelectedHandler = Symbol('addButtonSelectorSelectedHandler');
 export const addButtonSelectorClosedHandler = Symbol('addButtonSelectorClosedHandler');
+export const webUrlTemplate = Symbol('webUrlTemplate');
+export const sessionUrlInputHandler = Symbol('sessionUrlInputHandler');
 
 const AddTypeSelectorDelay = 700;
 
@@ -144,6 +147,11 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
        * When set the request editor does not allow to send the request if one is already loading.
        */
       noSendOnLoading: { type: Boolean },
+      /**
+       * An URL to be present in the session URL input when opened.
+       * The input can be opened by calling `openWebUrlInput()`
+       */
+      webSessionUrl: { type: String },
     };
   }
 
@@ -168,6 +176,10 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
      * @type {string}
      */
     this.oauth2RedirectUri = undefined;
+    /** 
+     * @type {string}
+     */
+    this.webSessionUrl = undefined;
     this.noSendOnLoading = false;
     /** 
      * @type {DomainWorkspace}
@@ -309,6 +321,9 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
       this.selected = workspace.selected;
     } else {
       this.selected = 0;
+    }
+    if (workspace.webSession && workspace.webSession.webSessionUrl) {
+      this.webSessionUrl = workspace.webSession.webSessionUrl;
     }
   }
 
@@ -819,6 +834,14 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     const tabId = panel.dataset.tab;
     const index = this[tabsValue].findIndex((tab) => tab.id === tabId);
     this.removeRequest(index);
+  }
+
+  /**
+   * Opens the input for opening web app to start a web session.
+   */
+  openWebUrlInput() {
+    const input = this.shadowRoot.querySelector('web-url-input');
+    input.opened = true;
   }
 
   /**
@@ -1367,12 +1390,23 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     this.requestUpdate();
   }
 
+  [sessionUrlInputHandler](e) {
+    this.webSessionUrl = e.target.value;
+    const workspace = this[workspaceValue];
+    if (!workspace.webSession) {
+      workspace.webSession = {};
+    }
+    workspace.webSession.webSessionUrl = this.webSessionUrl;
+    this.store();
+  }
+
   render() {
     return html`
     ${this[tabsTemplate]()}
     ${this[panelsTemplate]()}
     ${this[tabTypeSelector]()}
-    `
+    ${this[webUrlTemplate]()}
+    `;
   }
 
   /**
@@ -1532,6 +1566,21 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
         <anypoint-item ?compatibility="${compatibility}">Web socket</anypoint-item>
       </anypoint-listbox>
     </anypoint-dropdown>
+    `;
+  }
+
+  /**
+   * @returns {TemplateResult} The template for the web session URL input.
+   */
+  [webUrlTemplate]() {
+    const { webSessionUrl } = this;
+    return html`
+    <web-url-input
+      id="webUrlInput"
+      purpose="web-session"
+      .value="${webSessionUrl}"
+      @input="${this[sessionUrlInputHandler]}"
+    ></web-url-input>
     `;
   }
 }
