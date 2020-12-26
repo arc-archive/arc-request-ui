@@ -284,6 +284,12 @@ export declare class ArcRequestWorkspaceElement extends ArcResizableMixin(Events
   duplicateTab(index: number): void;
 
   /**
+   * Closes all tabs in the workspace
+   * @param index The index of the request to leave in the workspace. Optional.
+   */
+  closeAllTabs(index?: number): void;
+
+  /**
    * Finds requests index in the tabs array by its data store id.
    * This does not find not saved requests.
    *

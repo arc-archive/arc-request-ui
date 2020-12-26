@@ -679,6 +679,25 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
   }
 
   /**
+   * Closes all tabs in the workspace
+   * @param {number=} index The index of the request to leave in the workspace. Optional.
+   */
+  closeAllTabs(index) {
+    if (typeof index === 'number') {
+      const tabs = this[tabsValue];
+      const tab = tabs[index];
+      if (!tab) {
+        return;
+      }
+      const request = this.findRequestByTab(tab.id);
+      this.clear();
+      this.add(request.request);
+    } else {
+      this.clear();
+    }
+  }
+
+  /**
    * Finds requests index in the tabs array by its data store id.
    * This does not find not saved requests.
    *
