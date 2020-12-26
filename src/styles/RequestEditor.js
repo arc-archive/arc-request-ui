@@ -50,39 +50,39 @@ url-input-editor {
 }
 
 .http-label[data-method="get"] {
-  background-color: var(--http-method-label-get-color, rgb(0, 128, 0));
+  background-color: var(--http-get-color, rgb(0, 128, 0));
 }
 
 .http-label[data-method='post'] {
-  background-color: var(--http-method-label-post-color, rgb(33, 150, 243));
+  background-color: var(--http-post-color, rgb(33, 150, 243));
 }
 
 .http-label[data-method='put'] {
-  background-color: var(--http-method-label-put-color, rgb(255, 165, 0));
+  background-color: var(--http-put-color, rgb(255, 165, 0));
 }
 
 .http-label[data-method='delete'] {
-  background-color: var(--http-method-label-delete-color, rgb(244, 67, 54));
+  background-color: var(--http-delete-color, rgb(244, 67, 54));
 }
 
 .http-label[data-method='patch'] {
-  background-color: var(--http-method-label-patch-color, rgb(156, 39, 176));
+  background-color: var(--http-patch-color, rgb(156, 39, 176));
 }
 
 .http-label[data-method='options'] {
-  background-color: var(--http-method-label-options-color, var(--method-label-default-color));
+  background-color: var(--http-options-color, var(--method-label-default-color));
 }
 
 .http-label[data-method='head'] {
-  background-color: var(--http-method-label-head-color, var(--method-label-default-color));
+  background-color: var(--http-head-color, var(--method-label-default-color));
 }
 
 .http-label[data-method='trace'] {
-  background-color: var(--http-method-label-trace-color, var(--method-label-default-color));
+  background-color: var(--http-trace-color, var(--method-label-default-color));
 }
 
 .http-label[data-method='connect'] {
-  background-color: var(--http-method-label-connect-color, var(--method-label-default-color));
+  background-color: var(--http-connect-color, var(--method-label-default-color));
 }
 
 .method-list {
@@ -131,6 +131,7 @@ url-input-editor {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   border-radius: 50%;
   background-color: var(--accent-color);
   color: #fff;
