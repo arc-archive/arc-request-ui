@@ -17,6 +17,7 @@ import '@anypoint-web-components/anypoint-dialog/anypoint-dialog.js';
 import '@anypoint-web-components/anypoint-dialog/anypoint-dialog-scrollable.js';
 import '@advanced-rest-client/client-certificates/certificate-import.js';
 import '@advanced-rest-client/arc-ie/arc-data-export.js';
+import '@advanced-rest-client/bottom-sheet/bottom-sheet.js';
 import { RequestFactory, ModulesRegistry, RequestAuthorization, ResponseAuthorization, ArcFetchRequest, RequestCookies } from '@advanced-rest-client/request-engine';
 import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
 import { ImportEvents, ArcNavigationEventTypes, TransportEventTypes, TransportEvents, DataExportEventTypes, GoogleDriveEventTypes, WorkspaceEventTypes, ProjectActions, SessionCookieEventTypes } from '@advanced-rest-client/arc-events';
@@ -76,6 +77,8 @@ class ComponentDemo extends DemoPage {
     this.requestRunner = new ArcFetchRequest();
     this._closeImportHandler = this._closeImportHandler.bind(this);
     this._exportOpenedChanged = this._exportOpenedChanged.bind(this);
+    this.openMetaDetailsHandler = this.openMetaDetailsHandler.bind(this);
+    this.openMetaEditorHandler = this.openMetaEditorHandler.bind(this);
     window.addEventListener(DataExportEventTypes.fileSave, this.fileSaveHandler.bind(this))
     window.addEventListener(ArcNavigationEventTypes.navigateRequest, this.navigateRequestHandler.bind(this));
     window.addEventListener(ArcNavigationEventTypes.navigate, this.navigateHandler.bind(this));
@@ -301,6 +304,14 @@ class ComponentDemo extends DemoPage {
     this.exportSheetOpened = false;
   }
 
+  openMetaDetailsHandler() {
+    this.workspace.openWorkspaceDetails();
+  }
+
+  openMetaEditorHandler() {
+    this.workspace.openWorkspaceEditor();
+  }
+
   _demoTemplate() {
     if (!this.initialized) {
       return html`<progress></progress>`;
@@ -382,6 +393,9 @@ class ComponentDemo extends DemoPage {
       >
         No sending on loading
       </anypoint-checkbox>
+      <br/>
+      <anypoint-button @click="${this.openMetaDetailsHandler}">Open metadata details</anypoint-button>
+      <anypoint-button @click="${this.openMetaEditorHandler}">Open metadata editor</anypoint-button>
     </section>`;
   }
 

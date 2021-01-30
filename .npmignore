@@ -5,3 +5,5 @@ demo/
 node_modules/
 test/
 web_modules/
+custom-elements.json
+tsconfig.json

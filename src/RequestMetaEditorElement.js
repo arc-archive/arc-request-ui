@@ -160,7 +160,11 @@ export class RequestMetaEditorElement extends ProjectsListConsumerMixin(RequestM
     this[requestChanged]();
   }
 
-  firstUpdated() {
+  /**
+   * @param {Map<string | number | symbol, unknown>} args
+   */
+  firstUpdated(args) {
+    super.firstUpdated(args);
     const config = this[generateEditorConfig]();
     // @ts-ignore
     const instance = monaco.editor.create(this.shadowRoot.querySelector('.monaco'), config);

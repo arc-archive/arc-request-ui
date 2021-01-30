@@ -249,7 +249,7 @@ export class RequestMetaDetailsElement extends ArcResizableMixin(LitElement) {
     const chip = /** @type AnypointChip */ (e.currentTarget);
     const index = Number(chip.dataset.index);
     const id = projects[index]._id;
-    ArcNavigationEvents.navigateProject(this, id, 'detail');
+    ArcNavigationEvents.navigateProject(this, id, 'open');
   }
 
   /**
@@ -270,7 +270,7 @@ export class RequestMetaDetailsElement extends ArcResizableMixin(LitElement) {
   }
 
   /**
-   * Sends non-bubbling `edit-request` event to the parent element to perform
+   * Sends non-bubbling `edit` event to the parent element to perform
    * edit action.
    */
   [editHandler]() {

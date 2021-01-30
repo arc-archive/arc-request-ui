@@ -15,10 +15,13 @@ import '@anypoint-web-components/anypoint-item/anypoint-item.js';
 import '@advanced-rest-client/arc-icons/arc-icon.js';
 import '@advanced-rest-client/arc-websocket/arc-websocket-panel.js';
 import '@advanced-rest-client/arc-url/web-url-input.js';
+import '@advanced-rest-client/bottom-sheet/bottom-sheet.js';
 import elementStyles from './styles/Workspace.js';
 import '../arc-request-panel.js';
-import '../workspace-tab.js'
-import '../workspace-tabs.js'
+import '../workspace-tab.js';
+import '../workspace-tabs.js';
+import '../workspace-details.js';
+import '../workspace-editor.js';
 
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ArcBaseRequest} ArcBaseRequest */
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ARCSavedRequest} ARCSavedRequest */
@@ -96,6 +99,11 @@ export const addButtonSelectorSelectedHandler = Symbol('addButtonSelectorSelecte
 export const addButtonSelectorClosedHandler = Symbol('addButtonSelectorClosedHandler');
 export const webUrlTemplate = Symbol('webUrlTemplate');
 export const sessionUrlInputHandler = Symbol('sessionUrlInputHandler');
+export const workspaceMetaCloseHandler = Symbol('workspaceMetaCloseHandler');
+export const workspaceDetailTemplate = Symbol('workspaceDetailTemplate');
+export const workspaceMetaTemplate = Symbol('workspaceMetaTemplate');
+export const sheetClosedHandler = Symbol('sheetClosedHandler');
+export const storeWorkspaceMeta = Symbol('storeWorkspaceMeta');
 
 const AddTypeSelectorDelay = 700;
 
@@ -152,6 +160,14 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
        * The input can be opened by calling `openWebUrlInput()`
        */
       webSessionUrl: { type: String },
+      /**
+       * Indicates that the workspace details dialog is opened
+       */
+      workspaceDetailsOpened: { type: Boolean },
+      /**
+       * Indicates that the workspace meta editor is opened
+       */
+      workspaceMetaOpened: { type: Boolean },
     };
   }
 
@@ -196,6 +212,8 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     this.storeTimeout = 500;
     this.renderSend = false;
     this.progressInfo = false;
+    this.workspaceDetailsOpened = false;
+    this.workspaceMetaOpened = false;
     this[addButtonSelectorOpened] = false;
 
     this[transportHandler] = this[transportHandler].bind(this);
@@ -1419,12 +1437,47 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     this.store();
   }
 
+  /**
+   * Opens workspace meta details dialog.
+   */
+  openWorkspaceDetails() {
+    this.workspaceDetailsOpened = true;
+  }
+
+  /**
+   * Opens workspace meta editor dialog. Closes the details when needed.
+   */
+  openWorkspaceEditor() {
+    this.workspaceMetaOpened = true;
+    this.workspaceDetailsOpened = false;
+  }
+
+  [workspaceMetaCloseHandler]() {
+    this.workspaceMetaOpened = false;
+  }
+
+  [sheetClosedHandler](e) {
+    const prop = e.target.dataset.openProperty;
+    this[prop] = e.detail.value;
+  }
+
+  /**
+   * @param {CustomEvent} e
+   */
+  [storeWorkspaceMeta](e) {
+    this[workspaceValue] = e.detail;
+    this.store();
+    this.workspaceMetaOpened = false;
+  }
+
   render() {
     return html`
     ${this[tabsTemplate]()}
     ${this[panelsTemplate]()}
     ${this[tabTypeSelector]()}
     ${this[webUrlTemplate]()}
+    ${this[workspaceDetailTemplate]()}
+    ${this[workspaceMetaTemplate]()}
     `;
   }
 
@@ -1601,5 +1654,48 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
       @input="${this[sessionUrlInputHandler]}"
     ></web-url-input>
     `;
+  }
+
+  /**
+   * @returns {TemplateResult} The template for the workspace meta details dialog
+   */
+  [workspaceDetailTemplate]() {
+    const { compatibility, workspaceDetailsOpened } = this;
+    const workspace = workspaceDetailsOpened ? this[workspaceValue] : undefined;
+    return html`
+    <bottom-sheet
+      class="bottom-sheet-container"
+      .opened="${workspaceDetailsOpened}"
+      data-open-property="workspaceDetailsOpened"
+      @closed="${this[sheetClosedHandler]}"
+    >
+      <workspace-details
+        ?compatibility="${compatibility}"
+        .workspace="${workspace}"
+        @edit="${this.openWorkspaceEditor}"
+      ></workspace-details>
+    </bottom-sheet>`;
+  }
+
+  /**
+   * @returns {TemplateResult} The template for the workspace meta editor dialog
+   */
+  [workspaceMetaTemplate]() {
+    const { compatibility, workspaceMetaOpened } = this;
+    const workspace = workspaceMetaOpened ? this[workspaceValue] : undefined;
+    return html`
+    <bottom-sheet
+      class="bottom-sheet-container"
+      .opened="${workspaceMetaOpened}"
+      data-open-property="workspaceMetaOpened"
+      @closed="${this[sheetClosedHandler]}"
+    >
+      <workspace-editor
+        ?compatibility="${compatibility}"
+        .workspace="${workspace}"
+        @close="${this[workspaceMetaCloseHandler]}"
+        @store="${this[storeWorkspaceMeta]}"
+      ></workspace-editor>
+    </bottom-sheet>`;
   }
 }

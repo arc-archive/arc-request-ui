@@ -89,4 +89,11 @@ export default css`
 .add-panel-list anypoint-item {
   padding: 0 24px;
 }
+
+.bottom-sheet-container  {
+  width: var(--bottom-sheet-width, 100%);
+  max-width: var(--bottom-sheet-max-width, 700px);
+  right: var(--bottom-sheet-right, 40px);
+  left: var(--bottom-sheet-left, auto);
+}
 `;

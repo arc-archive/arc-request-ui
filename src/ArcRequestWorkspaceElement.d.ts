@@ -64,6 +64,11 @@ export declare const addButtonSelectorSelectedHandler: unique symbol;
 export declare const addButtonSelectorClosedHandler: unique symbol;
 export declare const webUrlTemplate: unique symbol;
 export declare const sessionUrlInputHandler: unique symbol;
+export declare const workspaceMetaCloseHandler: unique symbol;
+export declare const workspaceDetailTemplate: unique symbol;
+export declare const workspaceMetaTemplate: unique symbol;
+export declare const sheetClosedHandler: unique symbol;
+export declare const storeWorkspaceMeta: unique symbol;
 
 export declare class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMixin(LitElement)) {
   static get styles(): CSSResult;
@@ -129,6 +134,17 @@ export declare class ArcRequestWorkspaceElement extends ArcResizableMixin(Events
    * The input can be opened by calling `openWebUrlInput()`
    */
   webSessionUrl?: string;
+
+  /**
+   * Indicates that the workspace details dialog is opened
+   * @attribute
+   */
+  workspaceDetailsOpened?: boolean;
+  /**
+   * Indicates that the workspace meta editor is opened
+   * @attribute
+   */
+  workspaceMetaOpened?: boolean;
 
   constructor();
 
@@ -517,6 +533,21 @@ export declare class ArcRequestWorkspaceElement extends ArcResizableMixin(Events
 
   [sessionUrlInputHandler](e: Event): void;
 
+  /**
+   * Opens workspace meta details dialog.
+   */
+  openWorkspaceDetails(): void;
+
+  /**
+   * Opens workspace meta editor dialog. Closes the details when needed.
+   */
+  openWorkspaceEditor(): void;
+
+  [workspaceMetaCloseHandler](): void;
+
+  [sheetClosedHandler](e: Event): void;
+  [storeWorkspaceMeta](e: CustomEvent): void;
+
   render(): TemplateResult;
 
   /**
@@ -569,4 +600,14 @@ export declare class ArcRequestWorkspaceElement extends ArcResizableMixin(Events
    * @returns The template for the web session URL input.
    */
   [webUrlTemplate](): TemplateResult;
+
+  /**
+   * @returns The template for the workspace meta details dialog
+   */
+  [workspaceDetailTemplate](): TemplateResult;
+
+  /**
+   * @returns The template for the workspace meta editor dialog
+   */
+  [workspaceMetaTemplate](): TemplateResult;
 }

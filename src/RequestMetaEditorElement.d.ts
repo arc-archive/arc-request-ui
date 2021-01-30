@@ -29,10 +29,6 @@ import {
 import { ARCProjectUpdatedEvent } from '@advanced-rest-client/arc-models';
 import { ArcRequest } from '@advanced-rest-client/arc-types';
 
-/** @typedef {import('@advanced-rest-client/requests-list/src/ProjectsListConsumerMixin').ProjectSelectionInfo} ProjectSelectionInfo */
-/** @typedef {import('@advanced-rest-client/arc-models').ARCSavedRequest} ARCSavedRequest */
-/** @typedef {import('lit-element').CSSResult} CSSResult */
-
 /**
  * A dialog to edit request meta data.
  *

@@ -33,8 +33,8 @@ export default css`
 .bottom-sheet-container  {
   width: var(--bottom-sheet-width, 100%);
   max-width: var(--bottom-sheet-max-width, 700px);
-  right: var(--cookie-manager-bottom-sheet-right, 40px);
-  left: var(--cookie-manager-bottom-sheet-left, auto);
+  right: var(--bottom-sheet-right, 40px);
+  left: var(--bottom-sheet-left, auto);
 }
 
 .progress-info {
