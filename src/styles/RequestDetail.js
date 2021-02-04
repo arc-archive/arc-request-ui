@@ -101,7 +101,8 @@ anypoint-chip[disabled] {
 }
 
 .pill {
-  background-color: #e5e5e5;
+  background-color: var(--request-editor-pill-background-color, #e5e5e5);
+  color: var(--request-editor-pill-color, initial);
   font-size: 0.8rem;
   display: inline-block;
   padding: 1px 8px;
@@ -110,6 +111,7 @@ anypoint-chip[disabled] {
 }
 
 .pill.accent {
-  background-color: #FFC107;
+  background-color: var(--request-editor-pill-accent-background-color, #FFC107);
+  color: var(--request-editor-pill-accent-color, initial);
 }
 `;

@@ -20,6 +20,8 @@ export default css`
   flex: 1;
   overflow: hidden auto;
   box-sizing: border-box;
+  background: var(--request-editor-panel, var(--primary-background-color, inherit));
+  padding: 0px 8px;
 }
 
 body-editor {

@@ -69,7 +69,7 @@ export default css`
 .drop-pointer {
   position: absolute;
   left: 4px;
-  color: #757575;
+  color: var(--arc-request-workspace-drop-pointer-color, #757575);
   width: 20px;
   height: 24px;
   font-size: 20px;
