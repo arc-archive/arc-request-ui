@@ -67,6 +67,7 @@ export const resizerMouseUp = Symbol('resizerMouseUp');
 export const resizerMouseMove = Symbol('resizerMouseMove');
 export const isResizing = Symbol('isResizing');
 export const boxSize = Symbol('boxSize');
+export const innerAbortHandler = Symbol('innerAbortHandler');
 
 /** 
  * @type {string[]}
@@ -222,6 +223,7 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
     this[transportStatusHandler] = this[transportStatusHandler].bind(this);
     this[resizerMouseMove] = this[resizerMouseMove].bind(this);
     this[resizerMouseUp] = this[resizerMouseUp].bind(this);
+    this[innerAbortHandler] = this[innerAbortHandler].bind(this);
   }
 
   /**
@@ -240,6 +242,7 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
     window.addEventListener('requestloadend', this[transportStatusHandler]);
     window.addEventListener('beforeredirect', this[transportStatusHandler]);
     window.addEventListener('headersreceived', this[transportStatusHandler]);
+    this.addEventListener(TransportEventTypes.abort, this[innerAbortHandler]);
   }
 
   /**
@@ -258,6 +261,7 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
     window.removeEventListener('requestloadend', this[transportStatusHandler]);
     window.removeEventListener('beforeredirect', this[transportStatusHandler]);
     window.removeEventListener('headersreceived', this[transportStatusHandler]);
+    this.removeEventListener(TransportEventTypes.abort, this[innerAbortHandler]);
   }
 
   /**
@@ -285,12 +289,19 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
   }
 
   /**
+   * A handler for the abort event dispatched by the editor. Clears the `loading` flag.
+   */
+  [innerAbortHandler]() {
+    this.loading = false;
+  }
+
+  /**
    * @param {KeyboardEvent} e
    */
   [keydownHandler](e) {
     if (this.loading && e.code === 'Escape') {
       this.abort();
-    } else if (!this.loading && e.ctrlKey && e.code === 'Enter') {
+    } else if (!this.loading && e.code === 'Enter' && (e.ctrlKey || e.metaKey)) {
       // @ts-ignore
       const isBody = e.composedPath().some((element) => element.localName === 'body-editor');
       if (!isBody) {
@@ -686,8 +697,9 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
    * @returns {TemplateResult} The template for the response view
    */
   [responseTemplate]() {
-    const { editorRequest } = this;
-    const { transportRequest, response, ui={} } = editorRequest.request;
+    const editorRequest = /** @type ArcEditorRequest */ (this.editorRequest || {});
+    const request = /** @type ARCSavedRequest */ (editorRequest.request || {});
+    const { transportRequest, response, ui={} } = request;
     const classes = {
       panel: true,
       'scrolling-region': this.classList.contains('stacked'),
@@ -757,8 +769,10 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
   }
 
   [requestDetailTemplate]() {
-    const { compatibility, requestDetailsOpened, editorRequest } = this;
-    const typed = /** @type ARCSavedRequest */ (editorRequest.request);
+    const { compatibility, requestDetailsOpened } = this;
+    const editorRequest = /** @type ArcEditorRequest */ (this.editorRequest || {});
+    const request = /** @type ARCSavedRequest */ (editorRequest.request || {});
+    const typed = /** @type ARCSavedRequest */ (request);
     let type;
     if (requestDetailsOpened && typed._id) {
       type = typed.type;
@@ -781,8 +795,10 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
   }
 
   [requestMetaTemplate]() {
-    const { compatibility, requestMetaOpened, editorRequest } = this;
-    const typed = /** @type ARCSavedRequest */ (editorRequest.request);
+    const { compatibility, requestMetaOpened } = this;
+    const editorRequest = /** @type ArcEditorRequest */ (this.editorRequest || {});
+    const request = /** @type ARCSavedRequest */ (editorRequest.request || {});
+    const typed = /** @type ARCSavedRequest */ (request);
     let type;
     if (requestMetaOpened && typed._id) {
       type = typed.type;

@@ -34,6 +34,7 @@ export declare const storeRequestHandler: unique symbol;
 export declare const storeAsRequestHandler: unique symbol;
 export declare const boundEventsValue: unique symbol;
 export declare const retargetEvent: unique symbol;
+export declare const innerAbortHandler: unique symbol;
 
 /**
  * @fires selectedresponsepanelchange When selected tab in the response panel change
@@ -128,10 +129,22 @@ export declare class ArcRequestPanelElement extends EventsTargetMixin(ArcResizab
    */
   progressInfo: boolean;
   /** 
+   * When `progressInfo` is set this is the message to render in the status field.
+   * @attribute
+   */
+  progressMessage: string;
+  /** 
    * When set the request editor does not allow to send the request if one is already loading.
    * @attribute
    */
   noSendOnLoading: boolean;
+
+  /** 
+   * This value is set after resizing the panels in the UI. Once set it removes 
+   * flex value from the editor and sets its height to this value.
+   * @attribute
+   */
+  editorHeight: number;
 
   /**
    * Reference to ArcRequestEditorElement element.
@@ -159,6 +172,11 @@ export declare class ArcRequestPanelElement extends EventsTargetMixin(ArcResizab
    * Calls `clearRequest()` method of the `request-editor`
    */
   clear(): void;
+
+  /**
+   * A handler for the abort event dispatched by the editor. Clears the `loading` flag.
+   */
+  [innerAbortHandler](): void;
 
   [keydownHandler](e: KeyboardEvent): void;
 
