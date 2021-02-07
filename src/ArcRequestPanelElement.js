@@ -516,7 +516,7 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
   saveAction() {
     const { editorRequest } = this;
     const typed = /** @type ARCSavedRequest */ (editorRequest.request);
-    if (!typed._id || !typed._rev || !typed.type) {
+    if (!typed._id || !typed._rev || !typed.type || typed.type === 'history') {
       this.requestMetaOpened = true;
     } else {
       ArcModelEvents.Request.store(this, typed.type, typed);
