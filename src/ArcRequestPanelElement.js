@@ -414,6 +414,8 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
     }
     request.ui.response.selectedPanel = selected;
     this[notifyChange]();
+    // Keep this here: https://github.com/advanced-rest-client/arc-request-ui/issues/3
+    this.requestUpdate();
   }
 
   /**
@@ -431,6 +433,8 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
     }
     request.ui.response.activePanels = active;
     this[notifyChange]();
+    // Keep this here: https://github.com/advanced-rest-client/arc-request-ui/issues/3
+    this.requestUpdate();
   }
 
   [sheetClosedHandler](e) {
