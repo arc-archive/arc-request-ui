@@ -65,6 +65,7 @@ export default css`
   justify-content: center;
   flex-direction: column;
   transition: background-color ease-in-out 0.2s;
+  cursor: ns-resize;
 }
 
 .resize-handler:hover,
@@ -79,7 +80,6 @@ export default css`
 
 .resize-drag {
   opacity: 0;
-  cursor: pointer;
   transition: opacity ease-in-out 0.2s;
 }
 `;

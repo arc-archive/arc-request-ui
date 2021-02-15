@@ -743,8 +743,8 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
     };
     return html`
     <div class="resize-handler-container">
-      <div class="${classMap(classes)}">
-        <arc-icon class="resize-drag" icon="dragHandle" @mousedown="${this[resizerMouseDown]}"></arc-icon>
+      <div class="${classMap(classes)}" @mousedown="${this[resizerMouseDown]}">
+        <arc-icon class="resize-drag" icon="dragHandle"></arc-icon>
       </div>
     </div>
     `;
