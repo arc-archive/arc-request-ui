@@ -584,6 +584,11 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
     this.requestUpdate();
     const { selected } = e.detail;
     this.method = selected;
+    this.notifyRequestChanged();
+    this.notifyChanged('method', selected);
+    if (!this.isPayload && this.selectedTab === 1) {
+      this.selectedTab = 0;
+    }
     TelemetryEvents.event(this, {
       category: 'Request editor',
       action: 'Method selected',
@@ -1071,7 +1076,7 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
       .model="${model}"
       .contentType="${contentType}"
       @change="${this[bodyHandler]}"
-      @selected="${this[bodyHandler]}"
+      @select="${this[bodyHandler]}"
     ></body-editor>
     `;
   }

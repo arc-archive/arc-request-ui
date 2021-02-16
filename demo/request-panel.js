@@ -205,7 +205,6 @@ class ComponentDemo extends DemoPage {
       // the request has been aborted.
       return;
     }
-
     await this.factory.processResponse(result.request, result.transport, result.response);
     TransportEvents.response(document.body, transportRequest.id, transportRequest.request, result.transport, result.response);
 
