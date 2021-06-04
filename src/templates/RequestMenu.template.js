@@ -104,6 +104,16 @@ export default function requestMenuTemplate(handler, isStored, compatibility=fal
 
       <anypoint-icon-item
         class="menu-item"
+        title="Saved as HAR object"
+        tabindex="-1"
+        data-action="savehar"
+        ?compatibility="${compatibility}"
+      >
+        Save as HAR
+      </anypoint-icon-item>
+
+      <anypoint-icon-item
+        class="menu-item"
         title="Export this request"
         tabindex="-1"
         data-action="import-curl"

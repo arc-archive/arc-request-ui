@@ -5,6 +5,7 @@ import { styleMap } from 'lit-html/directives/style-map.js';
 import { ArcResizableMixin } from '@advanced-rest-client/arc-resizable-mixin';
 import { EventsTargetMixin } from '@advanced-rest-client/events-target-mixin';
 import { ExportEvents, TelemetryEvents, TransportEventTypes, ArcModelEvents, ArcModelEventTypes } from '@advanced-rest-client/arc-events';
+import { HarTransformer } from '@api-client/har';
 import '@advanced-rest-client/arc-response/response-view.js';
 import '@advanced-rest-client/arc-models/export-options.js';
 import '@advanced-rest-client/bottom-sheet/bottom-sheet.js';
@@ -58,6 +59,7 @@ export const requestMetaCloseHandler = Symbol('requestMetaCloseHandler');
 export const metaUpdateHandler = Symbol('metaUpdateHandler');
 export const storeRequestHandler = Symbol('storeRequestHandler');
 export const storeAsRequestHandler = Symbol('storeAsRequestHandler');
+export const storeRequestHarHandler = Symbol('storeRequestHarHandler');
 export const boundEventsValue = Symbol('boundEventsValue');
 export const retargetEvent = Symbol('retargetEvent');
 export const transportStatusHandler = Symbol('transportStatusHandler');
@@ -539,6 +541,27 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
     editor.saveAs = true;
   }
 
+  [storeRequestHarHandler]() {
+    this.saveRequestHar();
+  }
+
+  /**
+   * Transforms the current request to a HAR object and saves it as file.
+   */
+  async saveRequestHar() {
+    const { editorRequest } = this;
+    const { request } = editorRequest;
+    const transformer = new HarTransformer();
+    const result = await transformer.transform([request]);
+    const data = JSON.stringify(result);
+    const name = /** @type ARCSavedRequest */ (request).name || 'arc-request';
+    const file = `${name}.har`;
+    ExportEvents.fileSave(this, data, {
+      contentType: 'application/json',
+      file,
+    });
+  }
+
   /**
    * Handler for the event dispatched by the meta editor indicating that the request has changed.
    * @param {CustomEvent} e
@@ -690,6 +713,7 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
       @details="${this[detailRequestHandler]}"
       @save="${this[storeRequestHandler]}"
       @saveas="${this[storeAsRequestHandler]}"
+      @savehar="${this[storeRequestHarHandler]}"
       @close="${this[retargetEvent]}"
       @duplicate="${this[retargetEvent]}"
     ></arc-request-editor>

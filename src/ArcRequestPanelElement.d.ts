@@ -31,8 +31,15 @@ export declare const requestMetaCloseHandler: unique symbol;
 export declare const metaUpdateHandler: unique symbol;
 export declare const storeRequestHandler: unique symbol;
 export declare const storeAsRequestHandler: unique symbol;
+export declare const storeRequestHarHandler: unique symbol;
 export declare const boundEventsValue: unique symbol;
 export declare const retargetEvent: unique symbol;
+export declare const transportStatusHandler: unique symbol;
+export declare const resizerMouseDown: unique symbol;
+export declare const resizerMouseUp: unique symbol;
+export declare const resizerMouseMove: unique symbol;
+export declare const isResizing: unique symbol;
+export declare const boxSize: unique symbol;
 export declare const innerAbortHandler: unique symbol;
 
 /**
@@ -44,6 +51,8 @@ export declare const innerAbortHandler: unique symbol;
  */
 export declare class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(LitElement)) {
   static get styles(): CSSResult;
+
+  [isResizing]: boolean;
 
   /** 
    * The ARC request object
@@ -250,6 +259,13 @@ export declare class ArcRequestPanelElement extends EventsTargetMixin(ArcResizab
    */
   saveAsAction(): void;
 
+  [storeRequestHarHandler](): void;
+
+  /**
+   * Transforms the current request to a HAR object and saves it as file.
+   */
+  saveRequestHar(): Promise<void>;
+
   /**
    * Handler for the event dispatched by the meta editor indicating that the request has changed.
    */
@@ -259,6 +275,14 @@ export declare class ArcRequestPanelElement extends EventsTargetMixin(ArcResizab
    * Retargets the event to the parent.
    */
   [retargetEvent](e: Event): void;
+
+  /**
+   * The handler for the various transport events informing about the status.
+   */
+  [transportStatusHandler](e: CustomEvent): void;
+  [resizerMouseDown](e: MouseEvent): void;
+  [resizerMouseUp](e: MouseEvent): void;
+  [resizerMouseMove](e: MouseEvent): void;
 
   render(): TemplateResult;
 

@@ -623,6 +623,7 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
       case 'close':
       case 'duplicate':
       case 'saveas':
+      case 'savehar':
         this.dispatchEvent(new CustomEvent(action));
         break;
       case 'import-curl':
