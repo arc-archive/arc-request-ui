@@ -4,10 +4,9 @@ import { classMap } from 'lit-html/directives/class-map.js';
 import { styleMap } from 'lit-html/directives/style-map.js';
 import { ArcResizableMixin } from '@advanced-rest-client/arc-resizable-mixin';
 import { EventsTargetMixin } from '@advanced-rest-client/events-target-mixin';
-import { ExportEvents, TelemetryEvents, TransportEventTypes } from '@advanced-rest-client/arc-events';
-import { ArcModelEvents, ArcModelEventTypes } from '@advanced-rest-client/arc-models';
+import { ExportEvents, TelemetryEvents, TransportEventTypes, ArcModelEvents, ArcModelEventTypes } from '@advanced-rest-client/arc-events';
 import '@advanced-rest-client/arc-response/response-view.js';
-import '@advanced-rest-client/arc-ie/export-options.js';
+import '@advanced-rest-client/arc-models/export-options.js';
 import '@advanced-rest-client/bottom-sheet/bottom-sheet.js';
 import '@advanced-rest-client/arc-icons/arc-icon.js';
 import elementStyles from './styles/Panel.js';
@@ -24,8 +23,8 @@ import '../request-meta-editor.js';
 /** @typedef {import('@advanced-rest-client/arc-types').DataExport.ArcNativeDataExport} ArcNativeDataExport */
 /** @typedef {import('@advanced-rest-client/arc-events').ApiRequestEvent} ApiRequestEvent */
 /** @typedef {import('@advanced-rest-client/arc-events').ApiResponseEvent} ApiResponseEvent */
-/** @typedef {import('@advanced-rest-client/arc-models').ARCRequestDeletedEvent} ARCRequestDeletedEvent */
-/** @typedef {import('@advanced-rest-client/arc-response/').ResponseViewElement} ResponseViewElement */
+/** @typedef {import('@advanced-rest-client/arc-events').ARCRequestDeletedEvent} ARCRequestDeletedEvent */
+/** @typedef {import('@advanced-rest-client/arc-response').ResponseViewElement} ResponseViewElement */
 /** @typedef {import('lit-element').TemplateResult} TemplateResult */
 /** @typedef {import('@advanced-rest-client/arc-types').DataExport.ProviderOptions} ProviderOptions */
 /** @typedef {import('@advanced-rest-client/arc-types').DataExport.ExportOptions} ExportOptions */
@@ -359,8 +358,8 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
     if (!editorRequest || editorRequest.id !== id) {
       return;
     }
-    this.editorRequest.request.transportRequest = request;
-    this.editorRequest.request.response = response;
+    editorRequest.request.transportRequest = request;
+    editorRequest.request.response = response;
     this.loading = false;
     this.progressMessage = '';
     this.requestUpdate();
@@ -703,15 +702,15 @@ export class ArcRequestPanelElement extends EventsTargetMixin(ArcResizableMixin(
   [responseTemplate]() {
     const editorRequest = /** @type ArcEditorRequest */ (this.editorRequest || {});
     const request = /** @type ARCSavedRequest */ (editorRequest.request || {});
-    const { transportRequest, response, ui={} } = request;
+    const { ui={}, response } = request;
     const classes = {
       panel: true,
       'scrolling-region': this.classList.contains('stacked'),
     };
     return html`
     <response-view
+      .request="${request}"
       .response="${response}"
-      .request="${transportRequest}"
       .selected="${ui.response && ui.response.selectedPanel || defaultSelectedResponsePanel}"
       .active="${ui.response && ui.response.activePanels || defaultResponsePanels}"
       class="${classMap(classes)}"

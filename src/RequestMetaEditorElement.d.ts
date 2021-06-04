@@ -26,7 +26,7 @@ import {
   unsavedActionsTemplate,
   projectsTemplate,
 } from './internals.js';
-import { ARCProjectUpdatedEvent } from '@advanced-rest-client/arc-models';
+import { ARCProjectUpdatedEvent } from '@advanced-rest-client/arc-events';
 import { ArcRequest } from '@advanced-rest-client/arc-types';
 
 /**

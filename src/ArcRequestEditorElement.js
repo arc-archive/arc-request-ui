@@ -39,8 +39,8 @@ import '../request-meta-details.js';
 /** @typedef {import('@advanced-rest-client/arc-types').Authorization.OAuth2Authorization} OAuth2Authorization */
 /** @typedef {import('@advanced-rest-client/arc-headers').HeadersEditorElement} HeadersEditorElement */
 /** @typedef {import('@advanced-rest-client/body-editor').BodyEditorElement} BodyEditorElement */
-/** @typedef {import('@advanced-rest-client/authorization-selector').AuthorizationSelectorElement} AuthorizationSelectorElement */
-/** @typedef {import('@advanced-rest-client/authorization-method').AuthorizationMethod} AuthorizationMethod */
+/** @typedef {import('@advanced-rest-client/authorization').AuthorizationSelectorElement} AuthorizationSelectorElement */
+/** @typedef {import('@advanced-rest-client/authorization').AuthorizationMethodElement} AuthorizationMethodElement */
 /** @typedef {import('@advanced-rest-client/arc-actions').ARCActionsElement} ARCActionsElement */
 /** @typedef {import('@advanced-rest-client/arc-url').UrlInputEditorElement} UrlInputEditorElement */
 /** @typedef {import('./ArcRequestConfigElement').ArcRequestConfigElement} ArcRequestConfigElement */
@@ -483,7 +483,7 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
     if (!oauth) {
       return false;
     }
-    const authMethod = /** @type AuthorizationMethod */ (this.shadowRoot.querySelector('authorization-method[type="oauth 2"]'));
+    const authMethod = /** @type AuthorizationMethodElement */ (this.shadowRoot.querySelector('authorization-method[type="oauth 2"]'));
     const cnf = /** @type OAuth2Authorization */ (oauth.config);
     if (authMethod.validate() && !cnf.accessToken) {
       return true;
@@ -518,7 +518,7 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
       return;
     }
     if (this.requiresAuthorization()) {
-      const authMethod = /** @type AuthorizationMethod */ (this.shadowRoot.querySelector('authorization-method[type="oauth 2"]'));
+      const authMethod = /** @type AuthorizationMethodElement */ (this.shadowRoot.querySelector('authorization-method[type="oauth 2"]'));
       authMethod.authorize();
       this[awaitingOAuth2authorization] = true;
       return;
@@ -710,7 +710,7 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
   [authorizationHandler](e) {
     const selector = /** @type AuthorizationSelectorElement */ (e.target);
     const { selected, type } = selector;
-    const methods = /** @type AuthorizationMethod[] */ (selector.items);
+    const methods = /** @type AuthorizationMethodElement[] */ (selector.items);
     const result = /** @type RequestAuthorization[] */ ([]);
     methods.forEach((authMethod) => {
       const { type: mType } = authMethod;

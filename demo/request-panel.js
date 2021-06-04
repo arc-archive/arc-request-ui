@@ -15,14 +15,13 @@ import '@advanced-rest-client/arc-models/auth-data-model.js';
 import '@anypoint-web-components/anypoint-dialog/anypoint-dialog.js';
 import '@anypoint-web-components/anypoint-dialog/anypoint-dialog-scrollable.js';
 import '@advanced-rest-client/client-certificates/certificate-import.js';
-import '@advanced-rest-client/arc-ie/arc-data-export.js';
+import { ExportHandlerMixin } from '@advanced-rest-client/arc-demo-helper/src/ExportHandlerMixin.js';
+import listenEncoding from '@advanced-rest-client/arc-demo-helper/src/EncodingHelpers.js';
 import { RequestFactory, ModulesRegistry, RequestAuthorization, ResponseAuthorization, ArcFetchRequest } from '@advanced-rest-client/request-engine';
 import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
-import { ImportEvents, ArcNavigationEventTypes, TransportEventTypes, TransportEvents, DataExportEventTypes, GoogleDriveEventTypes } from '@advanced-rest-client/arc-events';
-import { ArcModelEvents } from '@advanced-rest-client/arc-models';
+import { ArcModelEvents, ImportEvents, ArcNavigationEventTypes, TransportEventTypes, TransportEvents } from '@advanced-rest-client/arc-events';
 import { MonacoLoader } from '@advanced-rest-client/monaco-support';
 import jexl from '../web_modules/jexl/dist/Jexl.js';
-import listenEncoding from './EncodingHelpers.js';
 import '../arc-request-panel.js';
 import '../request-meta-details.js';
 import '../request-meta-editor.js';
@@ -30,7 +29,7 @@ import '../request-meta-editor.js';
 /** @typedef {import('@advanced-rest-client/arc-events').ARCRequestNavigationEvent} ARCRequestNavigationEvent */
 /** @typedef {import('@advanced-rest-client/arc-events').ARCProjectNavigationEvent} ARCProjectNavigationEvent */
 /** @typedef {import('@advanced-rest-client/arc-events').ApiTransportEvent} ApiTransportEvent */
-/** @typedef {import('@advanced-rest-client/arc-models').ARCRequestDeletedEvent} ARCRequestDeletedEvent */
+/** @typedef {import('@advanced-rest-client/arc-events').ARCRequestDeletedEvent} ARCRequestDeletedEvent */
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ArcEditorRequest} ArcEditorRequest */
 /** @typedef {import('@advanced-rest-client/arc-events').ArcExportFilesystemEvent} ArcExportFilesystemEvent */
 
@@ -40,7 +39,7 @@ ModulesRegistry.register(ModulesRegistry.response, '@advanced-rest-client/reques
 
 const REQUEST_STORE_KEY = 'demo.arc-request-ui.editorRequest';
 
-class ComponentDemo extends DemoPage {
+class ComponentDemo extends ExportHandlerMixin(DemoPage) {
   constructor() {
     super();
     this.initObservableProperties([
@@ -78,16 +77,12 @@ class ComponentDemo extends DemoPage {
     this.requestRunner = new ArcFetchRequest();
     this._closeImportHandler = this._closeImportHandler.bind(this);
     this.urlKeyHandler = this.urlKeyHandler.bind(this);
-    this._exportOpenedChanged = this._exportOpenedChanged.bind(this);
-    window.addEventListener(DataExportEventTypes.fileSave, this.fileSaveHandler.bind(this))
     
     window.addEventListener(ArcNavigationEventTypes.navigateRequest, this.navigateRequestHandler.bind(this));
     window.addEventListener(ArcNavigationEventTypes.navigate, this.navigateHandler.bind(this));
     window.addEventListener(TransportEventTypes.request, this.makeRequest.bind(this));
     window.addEventListener(TransportEventTypes.abort, this.abortRequest.bind(this));
     window.addEventListener(TransportEventTypes.transport, this.transportRequest.bind(this));
-    window.addEventListener(DataExportEventTypes.fileSave, this._fileExportHandler.bind(this));
-    window.addEventListener(GoogleDriveEventTypes.save, this._fileExportHandler.bind(this));
     
     this.initEditors();
     this.restoreRequest();
@@ -217,24 +212,6 @@ class ComponentDemo extends DemoPage {
     this.requestRunner.abort(id);
   }
 
-  /** 
-   * @param {ArcExportFilesystemEvent} e
-   */
-  fileSaveHandler(e) {
-    const { data, providerOptions  } = e;
-    const a = document.createElement('a');
-    const blob = new Blob([data], { type: providerOptions.contentType });
-    const url = URL.createObjectURL(blob);
-    a.href = url;
-    a.download = providerOptions.file;
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => {
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);  
-    }, 0); 
-  }
-
   /**
    * @param {KeyboardEvent} e
    */
@@ -250,35 +227,6 @@ class ComponentDemo extends DemoPage {
         url: value,
       }
     };
-  }
-
-  /**
-   * @param {ArcExportFilesystemEvent} e
-   */
-  _fileExportHandler(e) {
-    const { providerOptions, data } = e;
-    const { file } = providerOptions;
-    
-    setTimeout(() => {
-      try {
-        this.exportData = JSON.stringify(JSON.parse(data), null, 2);
-      } catch (_) {
-        this.exportData = data;
-      }
-      this.exportFile = file;
-      this.exportSheetOpened = true;
-    });
-    e.preventDefault();
-    e.detail.result = Promise.resolve({
-      fileId: file,
-      success: true,
-      interrupted: false,
-      parentId: null,
-    });
-  }
-
-  _exportOpenedChanged() {
-    this.exportSheetOpened = false;
   }
 
   _demoTemplate() {
@@ -370,20 +318,6 @@ class ComponentDemo extends DemoPage {
     `;
   }
 
-  exportTemplate() {
-    const { exportSheetOpened, exportFile, exportData } = this;
-    return html`
-    <bottom-sheet
-      .opened="${exportSheetOpened}"
-      @closed="${this._exportOpenedChanged}">
-      <h3>Export demo</h3>
-      <p>This is a preview of the file. Normally export module would save this data to file / Drive.</p>
-      <p>File: ${exportFile}</p>
-      <pre>${exportData}</pre>
-    </bottom-sheet>
-    `;
-  }
-
   contentTemplate() {
     return html`
       <project-model></project-model>
@@ -392,7 +326,6 @@ class ComponentDemo extends DemoPage {
       <client-certificate-model></client-certificate-model>
       <variables-model></variables-model>
       <auth-data-model></auth-data-model>
-      <arc-data-export appVersion="demo-page"></arc-data-export>
       ${this._demoTemplate()}
       ${this._dataControlsTemplate()}
       ${this.demoRequest()}

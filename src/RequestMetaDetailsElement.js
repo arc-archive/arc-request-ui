@@ -8,8 +8,7 @@ import '@advanced-rest-client/arc-icons/arc-icon.js';
 import '@anypoint-web-components/anypoint-button/anypoint-button.js';
 import '@advanced-rest-client/arc-marked/arc-marked.js';
 import '@anypoint-web-components/anypoint-chip/anypoint-chip.js';
-import { ArcModelEvents, ArcModelEventTypes } from '@advanced-rest-client/arc-models';
-import { ArcNavigationEvents, TelemetryEvents } from '@advanced-rest-client/arc-events';
+import { ArcModelEvents, ArcModelEventTypes, ArcNavigationEvents, TelemetryEvents } from '@advanced-rest-client/arc-events';
 import elementStyles from './styles/RequestDetail.js';
 import {
   requestArcRequestEntity,
@@ -39,7 +38,7 @@ import {
 /** @typedef {import('@advanced-rest-client/arc-types').Project.ARCProject} ARCProject */
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ARCSavedRequest} ARCSavedRequest */
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ARCHistoryRequest} ARCHistoryRequest */
-/** @typedef {import('@advanced-rest-client/arc-models').ARCRequestUpdatedEvent} ARCRequestUpdatedEvent */
+/** @typedef {import('@advanced-rest-client/arc-events').ARCRequestUpdatedEvent} ARCRequestUpdatedEvent */
 /** @typedef {import('@anypoint-web-components/anypoint-chip').AnypointChip} AnypointChip */
 /** @typedef {import('lit-html').TemplateResult} TemplateResult */
 /** @typedef {import('lit-element').CSSResult} CSSResult */

@@ -8,13 +8,12 @@ import '@advanced-rest-client/arc-menu/history-menu.js';
 import '@advanced-rest-client/arc-models/request-model.js';
 import '@advanced-rest-client/arc-models/project-model.js';
 import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
-import { ImportEvents, ArcNavigationEventTypes } from '@advanced-rest-client/arc-events';
-import { ArcModelEvents, ArcModelEventTypes } from '@advanced-rest-client/arc-models';
+import { ArcModelEvents, ArcModelEventTypes, ImportEvents, ArcNavigationEventTypes } from '@advanced-rest-client/arc-events';
 import '../request-meta-details.js';
 
 /** @typedef {import('@advanced-rest-client/arc-events').ARCRequestNavigationEvent} ARCRequestNavigationEvent */
 /** @typedef {import('@advanced-rest-client/arc-events').ARCProjectNavigationEvent} ARCProjectNavigationEvent */
-/** @typedef {import('@advanced-rest-client/arc-models').ARCRequestDeletedEvent} ARCRequestDeletedEvent */
+/** @typedef {import('@advanced-rest-client/arc-events').ARCRequestDeletedEvent} ARCRequestDeletedEvent */
 
 class ComponentDemo extends DemoPage {
   constructor() {

@@ -1,9 +1,8 @@
 import { LitElement, CSSResult, TemplateResult } from 'lit-element';
 import { ArcResizableMixin } from '@advanced-rest-client/arc-resizable-mixin';
 import { EventsTargetMixin } from '@advanced-rest-client/events-target-mixin';
-import { ARCRequestDeletedEvent } from '@advanced-rest-client/arc-models';
 import { ArcEditorRequest } from '@advanced-rest-client/arc-types/src/request/ArcRequest';
-import { ApiRequestEvent, ApiResponseEvent } from '@advanced-rest-client/arc-events';
+import { ApiRequestEvent, ApiResponseEvent, ARCRequestDeletedEvent } from '@advanced-rest-client/arc-events';
 import { ArcRequestEditorElement } from './ArcRequestEditorElement';
 
 export declare const requestEditorTemplate: unique symbol;

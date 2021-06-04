@@ -1,6 +1,6 @@
 import { TemplateResult, CSSResult, LitElement } from 'lit-element';
 import { ArcResizableMixin } from '@advanced-rest-client/arc-resizable-mixin';
-import { ARCRequestUpdatedEvent } from '@advanced-rest-client/arc-models';
+import { ARCRequestUpdatedEvent } from '@advanced-rest-client/arc-events';
 import { Project, ArcRequest } from '@advanced-rest-client/arc-types';
 import { ARCProjectNames } from './types';
 

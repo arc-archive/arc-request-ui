@@ -1,6 +1,6 @@
 import { html } from 'lit-element';
-import '@advanced-rest-client/authorization-selector/authorization-selector.js';
-import '@advanced-rest-client/authorization-method/authorization-method.js';
+import '@advanced-rest-client/authorization/authorization-selector.js';
+import '@advanced-rest-client/authorization/authorization-method.js';
 import '@advanced-rest-client/client-certificates/cc-authorization-method.js'
 
 /** @typedef {import('lit-element').TemplateResult} TemplateResult */

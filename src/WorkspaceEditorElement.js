@@ -21,7 +21,6 @@ import '@anypoint-web-components/anypoint-collapse/anypoint-collapse.js';
 import '@advanced-rest-client/arc-icons/arc-icon.js';
 import '@anypoint-web-components/anypoint-button/anypoint-button.js';
 import '@anypoint-web-components/anypoint-button/anypoint-icon-button.js';
-import '@polymer/iron-form/iron-form.js';
 import styles from './styles/WorkspaceEditor.js';
 import {
   descriptionTemplate,
@@ -35,6 +34,8 @@ import {
   providerNameTemplate,
   providerUrlTemplate,
   providerEmailTemplate,
+  sendForm,
+  keydownHandler,
 } from './internals.js';
 
 export const toggleOptions = Symbol('toggleOptions');
@@ -46,6 +47,7 @@ export const workspaceValue = Symbol('workspaceValue');
 
 /** @typedef {import('lit-element').TemplateResult} TemplateResult */
 /** @typedef {import('@advanced-rest-client/arc-types').Workspace.DomainWorkspace} DomainWorkspace */
+/** @typedef {import('@anypoint-web-components/anypoint-input').AnypointInput} AnypointInput */
 /** @typedef {import('monaco-editor').editor.IStandaloneEditorConstructionOptions} IStandaloneEditorConstructionOptions */
 
 /* global  monaco */
@@ -111,6 +113,18 @@ export class WorkspaceEditorElement extends ArcResizableMixin(LitElement) {
 
     this.compatibility = false;
     this.outlined = false;
+
+    this[keydownHandler] = this[keydownHandler].bind(this);
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    this.addEventListener('keydown', this[keydownHandler]);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.removeEventListener('keydown', this[keydownHandler]);
   }
 
   /**
@@ -122,6 +136,23 @@ export class WorkspaceEditorElement extends ArcResizableMixin(LitElement) {
     // @ts-ignore
     const instance = monaco.editor.create(this.shadowRoot.querySelector('.monaco'), config);
     this[monacoInstance] = instance;
+  }
+
+  /**
+   * @param {KeyboardEvent} e
+   */
+  [keydownHandler](e) {
+    const { ctrlKey, key } = e;
+    if (ctrlKey && key === 'Enter') {
+      this[sendForm]();
+    }
+  }
+
+  /**
+   * Clicks on the "submit" button to mimic user click.
+   */
+  [sendForm]() {
+    /** @type HTMLInputElement */ (this.shadowRoot.querySelector('input[type="submit"]')).click();
   }
 
   /**
@@ -160,8 +191,11 @@ export class WorkspaceEditorElement extends ArcResizableMixin(LitElement) {
    */
   serializeForm() {
     const { workspace } = this;
-    const form = this.shadowRoot.querySelector('iron-form');
-    const values = form.serializeForm();
+    const inputs = /** @type AnypointInput[] */ (Array.from(this.shadowRoot.querySelectorAll('form anypoint-input')));
+    const values = {};
+    inputs.forEach((input) => {
+      values[input.name] = input.value;
+    });
     if (!workspace.meta) {
       workspace.meta = {};
     }
@@ -188,6 +222,20 @@ export class WorkspaceEditorElement extends ArcResizableMixin(LitElement) {
     return workspace;
   }
 
+  /**
+   * @returns {boolean} True when all inputs are valid.
+   */
+  validate() {
+    const inputs = /** @type AnypointInput[] */ (Array.from(this.shadowRoot.querySelectorAll('form anypoint-input')));
+    let result = true;
+    inputs.forEach((input) => {
+      if (!input.validate()) {
+        result = false;
+      }
+    });
+    return result;
+  }
+
   [generateEditorConfig]() {
     const { workspace } = this;
     const { meta={} } = workspace;
@@ -209,41 +257,39 @@ export class WorkspaceEditorElement extends ArcResizableMixin(LitElement) {
   }
 
   /**
-   * Sends the `save` custom event with computed detail object.
+   * Calls the `save()` function on form submit.
    *
-   * @param {CustomEvent} e
+   * @param {Event} e
    */
   [submitHandler](e) {
     e.preventDefault();
-    const workspace = this.serializeForm();
-    this.dispatchEvent(new CustomEvent('store', {
-      detail: workspace,
-    }));
+    this.send();
   }
 
   /**
    * Validates and submits the form.
    */
   send() {
-    const form = this.shadowRoot.querySelector('iron-form');
-    if (!form.validate()) {
+    if (!this.validate()) {
       return;
     }
-    form.submit();
+    const workspace = this.serializeForm();
+    this.dispatchEvent(new CustomEvent('store', {
+      detail: workspace,
+    }));
   }
 
   render() {
     return html`
     <h2 class="title">Edit workspace details</h2>
-    <iron-form id="form" @iron-form-presubmit="${this[submitHandler]}">
-    <form method="POST">
+    <form method="POST" @submit="${this[submitHandler]}">
       ${this[descriptionTemplate]()}
       ${this[versionTemplate]()}
       ${this[publishedTemplate]()}
       ${this[additionalTemplate]()}
       ${this[actionsTemplate]()}
-    </form>
-    </iron-form>`;
+      <input type="submit" hidden/>
+    </form>`;
   }
 
   /**

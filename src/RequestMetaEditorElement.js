@@ -5,10 +5,8 @@ import { html } from 'lit-element';
 import '@anypoint-web-components/anypoint-input/anypoint-input.js';
 import '@anypoint-web-components/anypoint-button/anypoint-button.js';
 import '@anypoint-web-components/anypoint-chip-input/anypoint-chip-input.js';
-import '@polymer/iron-form/iron-form.js';
-import { ArcModelEvents } from '@advanced-rest-client/arc-models';
 import { MonacoTheme, MonacoStyles } from '@advanced-rest-client/monaco-support';
-import { WorkspaceEvents } from '@advanced-rest-client/arc-events';
+import { ArcModelEvents, WorkspaceEvents } from '@advanced-rest-client/arc-events';
 import {
   ProjectsListConsumerMixin,
   internals,
@@ -37,15 +35,17 @@ import {
   savedActionsTemplate,
   unsavedActionsTemplate,
   projectsTemplate,
+  keydownHandler,
 } from './internals.js';
 
 /** @typedef {import('@advanced-rest-client/requests-list/src/ProjectsListConsumerMixin').ProjectSelectionInfo} ProjectSelectionInfo */
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ARCSavedRequest} ARCSavedRequest */
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ARCHistoryRequest} ARCHistoryRequest */
 /** @typedef {import('@advanced-rest-client/arc-types').Project.ARCProject} ARCProject */
-/** @typedef {import('@advanced-rest-client/arc-models').ARCProjectUpdatedEvent} ARCProjectUpdatedEvent */
+/** @typedef {import('@advanced-rest-client/arc-events').ARCProjectUpdatedEvent} ARCProjectUpdatedEvent */
 /** @typedef {import('lit-element').CSSResult} CSSResult */
 /** @typedef {import('monaco-editor').editor.IStandaloneEditorConstructionOptions} IStandaloneEditorConstructionOptions */
+/** @typedef {import('@anypoint-web-components/anypoint-input').AnypointInput} AnypointInput */
 
 /* global  monaco */
 
@@ -150,6 +150,28 @@ export class RequestMetaEditorElement extends ProjectsListConsumerMixin(RequestM
     this.outlined = false;
     this.saveAs = false;
     this[monacoValueChanged] = this[monacoValueChanged].bind(this);
+    this[keydownHandler] = this[keydownHandler].bind(this);
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    this.addEventListener('keydown', this[keydownHandler]);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.removeEventListener('keydown', this[keydownHandler]);
+  }
+
+  /**
+   * @param {KeyboardEvent} e
+   */
+  [keydownHandler](e) {
+    const { ctrlKey, key } = e;
+    if (ctrlKey && key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+    }
   }
 
   /**
@@ -228,21 +250,10 @@ export class RequestMetaEditorElement extends ProjectsListConsumerMixin(RequestM
   /**
    * Validates and submits the form.
    */
-  send() {
-    const form = this.shadowRoot.querySelector('iron-form');
-    if (!form.validate()) {
+  async send() {
+    if (!this.validate()) {
       return;
     }
-    form.submit();
-  }
-
-  /**
-   * Sends the `save-request` custom event with computed detail object.
-   *
-   * @param {CustomEvent} e
-   */
-  async [submitHandler](e) {
-    e.preventDefault();
     const { request, projects } = this[computeEventDetail]();
     this[savingValue] = true;
     this.requestUpdate();
@@ -257,6 +268,30 @@ export class RequestMetaEditorElement extends ProjectsListConsumerMixin(RequestM
     if (!this[overrideValue] || this.saveAs) {
       WorkspaceEvents.appendRequest(this, record.item);
     }
+  }
+
+  /**
+   * @returns {boolean} True when all inputs are valid.
+   */
+  validate() {
+    const inputs = /** @type AnypointInput[] */ (Array.from(this.shadowRoot.querySelectorAll('form anypoint-input, form anypoint-chip-input')));
+    let result = true;
+    inputs.forEach((input) => {
+      if (!input.validate()) {
+        result = false;
+      }
+    });
+    return result;
+  }
+
+  /**
+   * Calls the `save()` function on form submit.
+   *
+   * @param {Event} e
+   */
+  [submitHandler](e) {
+    e.preventDefault();
+    this.send();
   }
 
   /**
@@ -447,13 +482,11 @@ export class RequestMetaEditorElement extends ProjectsListConsumerMixin(RequestM
     return html`
     ${this[titleTemplate]()}
     ${this[addressTemplate]()}
-    <iron-form id="form" @iron-form-presubmit="${this[submitHandler]}">
-      <form method="POST">
-        ${this[nameInputTemplate]()}
-        ${this[projectsTemplate]()}
-        ${this[descriptionTemplate]()}
-      </form>
-    </iron-form>
+    <form method="POST" @submit="${this[submitHandler]}">
+      ${this[nameInputTemplate]()}
+      ${this[projectsTemplate]()}
+      ${this[descriptionTemplate]()}
+    </form>
     <div class="actions">
       ${this[actionsTemplate]()}
     </div>`;

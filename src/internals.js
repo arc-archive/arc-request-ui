@@ -42,3 +42,5 @@ export const additionalTemplate = Symbol('additionalTemplate');
 export const providerNameTemplate = Symbol('providerNameTemplate');
 export const providerUrlTemplate = Symbol('providerUrlTemplate');
 export const providerEmailTemplate = Symbol('providerEmailTemplate');
+export const sendForm = Symbol('sendForm');
+export const keydownHandler = Symbol('keydownHandler');

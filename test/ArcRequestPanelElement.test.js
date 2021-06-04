@@ -2,8 +2,7 @@
 import { fixture, assert, html, nextFrame } from '@open-wc/testing';
 import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
 import sinon from 'sinon';
-import { ArcModelEvents, ArcModelEventTypes } from '@advanced-rest-client/arc-models';
-import { TransportEvents } from '@advanced-rest-client/arc-events';
+import { ArcModelEvents, ArcModelEventTypes, TransportEvents } from '@advanced-rest-client/arc-events';
 import '../arc-request-panel.js';
 import { loadMonaco } from './MonacoSetup.js';
 
