@@ -6,7 +6,7 @@ import '@api-components/http-method-label/http-method-label.js';
 import '@github/time-elements';
 import '@advanced-rest-client/arc-icons/arc-icon.js';
 import '@anypoint-web-components/anypoint-button/anypoint-button.js';
-import '@advanced-rest-client/arc-marked/arc-marked.js';
+import '@advanced-rest-client/highlight/arc-marked.js';
 import '@anypoint-web-components/anypoint-chip/anypoint-chip.js';
 import { ArcModelEvents, ArcModelEventTypes, ArcNavigationEvents, TelemetryEvents } from '@advanced-rest-client/arc-events';
 import elementStyles from './styles/RequestDetail.js';

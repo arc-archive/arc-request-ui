@@ -4,7 +4,7 @@ import { ArcResizableMixin } from '@advanced-rest-client/arc-resizable-mixin';
 import '@github/time-elements';
 import '@advanced-rest-client/arc-icons/arc-icon.js';
 import '@anypoint-web-components/anypoint-button/anypoint-button.js';
-import '@advanced-rest-client/arc-marked/arc-marked.js';
+import '@advanced-rest-client/highlight/arc-marked.js';
 import markdownStyles from '@advanced-rest-client/markdown-styles/markdown-styles.js';
 import styles from './styles/WorkspaceDetails.js';
 import {
