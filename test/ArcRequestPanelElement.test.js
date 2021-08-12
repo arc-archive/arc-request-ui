@@ -1,6 +1,6 @@
 /* eslint-disable no-continue */
 import { fixture, assert, html, nextFrame } from '@open-wc/testing';
-import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
+import { ArcMock } from '@advanced-rest-client/arc-data-generator';
 import sinon from 'sinon';
 import { ArcModelEvents, ArcModelEventTypes, TransportEvents } from '@advanced-rest-client/arc-events';
 import '../arc-request-panel.js';
@@ -11,7 +11,7 @@ import { loadMonaco } from './MonacoSetup.js';
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ARCSavedRequest} ARCSavedRequest */
 
 describe('ArcRequestPanelElement', () => {
-  const gen = new DataGenerator();
+  const gen = new ArcMock();
 
   /**
    * @param {ArcEditorRequest=} request
@@ -37,7 +37,7 @@ describe('ArcRequestPanelElement', () => {
   describe('send()', () => {
     let element = /** @type ArcRequestPanelElement */ (null);
     beforeEach(async () => {
-      const request = gen.generateHistoryObject();
+      const request = gen.http.history();
       element = await basicFixture({
         id: '1',
         request,
@@ -55,7 +55,7 @@ describe('ArcRequestPanelElement', () => {
   describe('abort()', () => {
     let element = /** @type ArcRequestPanelElement */ (null);
     beforeEach(async () => {
-      const request = gen.generateHistoryObject();
+      const request = gen.http.history();
       element = await basicFixture({
         id: '1',
         request,
@@ -188,7 +188,7 @@ describe('ArcRequestPanelElement', () => {
     let element = /** @type ArcRequestPanelElement */ (null);
     let request = /** @type ARCSavedRequest */ (null);
     beforeEach(async () => {
-      request = /** @type ARCSavedRequest */ (gen.generateSavedItem());
+      request = /** @type ARCSavedRequest */ (gen.http.saved());
       request._id = 'test-id';
       request._rev = 'test-rev';
       element = await basicFixture({
@@ -228,7 +228,7 @@ describe('ArcRequestPanelElement', () => {
     let element = /** @type ArcRequestPanelElement */ (null);
     let request = /** @type ARCSavedRequest */ (null);
     beforeEach(async () => {
-      request = /** @type ARCSavedRequest */ (gen.generateSavedItem());
+      request = /** @type ARCSavedRequest */ (gen.http.saved());
       element = await basicFixture({
         id: '1',
         request,
@@ -264,7 +264,7 @@ describe('ArcRequestPanelElement', () => {
     let element = /** @type ArcRequestPanelElement */ (null);
     let request = /** @type ARCSavedRequest */ (null);
     beforeEach(async () => {
-      request = /** @type ARCSavedRequest */ (gen.generateSavedItem());
+      request = /** @type ARCSavedRequest */ (gen.http.saved());
       element = await basicFixture({
         id: '1',
         request,
@@ -273,26 +273,26 @@ describe('ArcRequestPanelElement', () => {
 
     it('re-sets the loading state', () => {
       element.loading = true;
-      const rsp = gen.generateResponse();
+      const rsp = gen.http.response.arcResponse();
       TransportEvents.response(window, '1', request, { ...request, endTime: 1, startTime: 0, httpMessage: '', }, rsp);
       assert.isFalse(element.loading);
     });
 
     it('re-sets the progressMessage', () => {
       element.progressMessage = 'Preparing the request...';
-      const rsp = gen.generateResponse();
+      const rsp = gen.http.response.arcResponse();
       TransportEvents.response(window, '1', request, { ...request, endTime: 1, startTime: 0, httpMessage: '', }, rsp);
       assert.equal(element.progressMessage, '');
     });
 
     it('sets the response on the request object', () => {
-      const rsp = gen.generateResponse();
+      const rsp = gen.http.response.arcResponse();
       TransportEvents.response(window, '1', request, { ...request, endTime: 1, startTime: 0, httpMessage: '', }, rsp);
       assert.deepEqual(element.editorRequest.request.response, rsp);
     });
 
     it('sets the transportRequest on the request object', () => {
-      const rsp = gen.generateResponse();
+      const rsp = gen.http.response.arcResponse();
       const transportRequest = { ...request, endTime: 1, startTime: 0, httpMessage: '', };
       TransportEvents.response(window, '1', request, transportRequest, rsp);
       assert.deepEqual(element.editorRequest.request.transportRequest, transportRequest);
@@ -300,7 +300,7 @@ describe('ArcRequestPanelElement', () => {
 
     it('ignores other requests', () => {
       element.loading = true;
-      const rsp = gen.generateResponse();
+      const rsp = gen.http.response.arcResponse();
       TransportEvents.response(window, '2', request, { ...request, endTime: 1, startTime: 0, httpMessage: '', }, rsp);
       assert.isTrue(element.loading);
     });
@@ -308,7 +308,7 @@ describe('ArcRequestPanelElement', () => {
     it('notifies change', () => {
       const spy = sinon.spy();
       element.addEventListener('change', spy);
-      const rsp = gen.generateResponse();
+      const rsp = gen.http.response.arcResponse();
       TransportEvents.response(window, '1', request, { ...request, endTime: 1, startTime: 0, httpMessage: '', }, rsp);
       assert.isTrue(spy.called);
     });
@@ -318,7 +318,7 @@ describe('ArcRequestPanelElement', () => {
     let element = /** @type ArcRequestPanelElement */ (null);
     let request = /** @type ARCSavedRequest */ (null);
     beforeEach(async () => {
-      request = /** @type ARCSavedRequest */ (gen.generateSavedItem());
+      request = /** @type ARCSavedRequest */ (gen.http.saved());
       element = await basicFixture({
         id: '1',
         request,
@@ -346,7 +346,7 @@ describe('ArcRequestPanelElement', () => {
     let element = /** @type ArcRequestPanelElement */ (null);
     let request = /** @type ARCSavedRequest */ (null);
     beforeEach(async () => {
-      request = /** @type ARCSavedRequest */ (gen.generateSavedItem());
+      request = /** @type ARCSavedRequest */ (gen.http.saved());
       element = await basicFixture({
         id: '1',
         request,
@@ -372,7 +372,7 @@ describe('ArcRequestPanelElement', () => {
     let element = /** @type ArcRequestPanelElement */ (null);
     let request = /** @type ARCSavedRequest */ (null);
     beforeEach(async () => {
-      request = /** @type ARCSavedRequest */ (gen.generateSavedItem());
+      request = /** @type ARCSavedRequest */ (gen.http.saved());
       element = await basicFixture({
         id: '1',
         request,
@@ -380,7 +380,7 @@ describe('ArcRequestPanelElement', () => {
     });
 
     it('clears the transportRequest property', async () => {
-      const rsp = gen.generateResponse();
+      const rsp = gen.http.response.arcResponse();
       const transportRequest = { ...request, endTime: 1, startTime: 0, httpMessage: '', };
       TransportEvents.response(window, '1', request, transportRequest, rsp);
       await nextFrame();
@@ -391,7 +391,7 @@ describe('ArcRequestPanelElement', () => {
     });
 
     it('clears the response property', async () => {
-      const rsp = gen.generateResponse();
+      const rsp = gen.http.response.arcResponse();
       const transportRequest = { ...request, endTime: 1, startTime: 0, httpMessage: '', };
       TransportEvents.response(window, '1', request, transportRequest, rsp);
       await nextFrame();
@@ -414,7 +414,7 @@ describe('ArcRequestPanelElement', () => {
     let element = /** @type ArcRequestPanelElement */ (null);
     let request = /** @type ARCSavedRequest */ (null);
     beforeEach(async () => {
-      request = /** @type ARCSavedRequest */ (gen.generateSavedItem());
+      request = /** @type ARCSavedRequest */ (gen.http.saved());
       request._id = 'test-id';
       request._rev = 'test-rev';
       element = await basicFixture({
@@ -453,7 +453,7 @@ describe('ArcRequestPanelElement', () => {
     let element = /** @type ArcRequestPanelElement */ (null);
     let request = /** @type ARCSavedRequest */ (null);
     beforeEach(async () => {
-      request = /** @type ARCSavedRequest */ (gen.generateSavedItem());
+      request = /** @type ARCSavedRequest */ (gen.http.saved());
       request._id = 'test-id';
       request._rev = 'test-rev';
       element = await basicFixture({

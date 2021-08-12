@@ -8,7 +8,7 @@ import '@advanced-rest-client/arc-menu/history-menu.js';
 import '@advanced-rest-client/arc-models/request-model.js';
 import '@advanced-rest-client/arc-models/project-model.js';
 import { MonacoLoader } from '@advanced-rest-client/monaco-support';
-import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
+import { ArcMock } from '@advanced-rest-client/arc-data-generator';
 import { ArcModelEvents, ArcModelEventTypes, ImportEvents, ArcNavigationEventTypes } from '@advanced-rest-client/arc-events';
 import '../request-meta-editor.js';
 
@@ -26,7 +26,7 @@ class ComponentDemo extends DemoPage {
     this.request = undefined;
     this.requestId = undefined;
     this.requestType = undefined;
-    this.generator = new DataGenerator();
+    this.generator = new ArcMock();
     this.initializing = true;
 
     this.generateData = this.generateData.bind(this);
@@ -50,17 +50,14 @@ class ComponentDemo extends DemoPage {
   }
 
   async generateData() {
-    await this.generator.insertSavedRequestData({
-      requestsSize: 100,
-    });
-    await this.generator.insertHistoryRequestData({
-      requestsSize: 100,
-    });
+    await this.generator.store.insertSaved(100);
+    await this.generator.store.insertHistory(100);
     ImportEvents.dataImported(document.body);
   }
 
   async deleteData() {
-    await this.generator.destroyHistoryData();
+    await this.generator.store.destroyHistory();
+    await this.generator.store.destroySaved();
     ArcModelEvents.destroyed(document.body, 'all');
   }
 
@@ -100,9 +97,9 @@ class ComponentDemo extends DemoPage {
 
   randomHandler() {
     if (Date.now() % 2 === 0) {
-      this.request = this.generator.generateSavedItem();
+      this.request = this.generator.http.saved();
     } else {
-      this.request = this.generator.generateHistoryObject();
+      this.request = this.generator.http.history();
     }
     this.requestId = undefined;
     this.requestType = undefined;

@@ -17,7 +17,7 @@ import '@advanced-rest-client/client-certificates/certificate-import.js';
 import { ExportHandlerMixin } from '@advanced-rest-client/arc-demo-helper/src/ExportHandlerMixin.js';
 import listenEncoding from '@advanced-rest-client/arc-demo-helper/src/EncodingHelpers.js';
 import { RequestFactory, ModulesRegistry, RequestAuthorization, ResponseAuthorization, ArcFetchRequest } from '@advanced-rest-client/request-engine';
-import { DataGenerator } from '@advanced-rest-client/arc-data-generator';
+import { ArcMock } from '@advanced-rest-client/arc-data-generator';
 import { ImportEvents, ArcNavigationEventTypes, TransportEventTypes, ArcModelEvents } from '@advanced-rest-client/arc-events';
 import { MonacoLoader } from '@advanced-rest-client/monaco-support';
 import { v4 } from '@advanced-rest-client/uuid-generator';
@@ -55,7 +55,7 @@ class ComponentDemo extends ExportHandlerMixin(DemoPage) {
     };
     this.requestId = undefined;
     this.requestType = undefined;
-    this.generator = new DataGenerator();
+    this.generator = new ArcMock();
     this.oauth2RedirectUri = 'http://auth.advancedrestclient.com/arc.html';
     this.oauth2AuthorizationUri = `${window.location.protocol}//${window.location.host}${window.location.pathname}oauth-authorize.html`;
 
@@ -87,18 +87,14 @@ class ComponentDemo extends ExportHandlerMixin(DemoPage) {
   }
 
   async generateData() {
-    await this.generator.insertSavedRequestData({
-      requestsSize: 100,
-    });
-    await this.generator.insertHistoryRequestData({
-      requestsSize: 100,
-    });
+    await this.generator.store.insertSaved(100);
+    await this.generator.store.insertHistory(100);
     ImportEvents.dataImported(document.body);
   }
 
   async deleteData() {
-    await this.generator.destroySavedRequestData();
-    await this.generator.destroyHistoryData();
+    await this.generator.store.destroySaved();
+    await this.generator.store.destroyHistory();
     ArcModelEvents.destroyed(document.body, 'all');
   }
 
