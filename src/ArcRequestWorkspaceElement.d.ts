@@ -26,6 +26,7 @@ export declare const tabsSelectionHandler: unique symbol;
 export declare const requestChangeHandler: unique symbol;
 export declare const tabDragStartHandler: unique symbol;
 export declare const tabDragEndHandler: unique symbol;
+export declare const tabCloseHandler: unique symbol;
 export declare const reorderInfo: unique symbol;
 export declare const workspaceValue: unique symbol;
 export declare const restoreRequests: unique symbol;
@@ -181,7 +182,7 @@ export declare class ArcRequestWorkspaceElement extends ArcResizableMixin(Events
   /**
    * Updates local properties from the workspace state file.
    */
-  processWorkspace(workspace: DomainWorkspace): void;
+  setWorkspace(workspace: DomainWorkspace): void;
 
   [restoreRequests](requests: WorkspaceRequestUnion[]): void;
 
@@ -492,6 +493,11 @@ export declare class ArcRequestWorkspaceElement extends ArcResizableMixin(Events
    * Action to handle dragover event when not in reorder mode.
    */
   [newTabDragover](e: DragEvent): void;
+
+  /**
+   * A handler for the `close` event dispatched by the editor tab. Closes a panel.
+   */
+  [tabCloseHandler](e: Event): void;
 
   /**
    * A handler for the `close` event dispatched by the request panel. Closes the panel.

@@ -4,3 +4,5 @@ export { ArcRequestEditorElement } from './src/ArcRequestEditorElement.js';
 export { ArcRequestConfigElement } from './src/ArcRequestConfigElement.js';
 export { ArcRequestPanelElement } from './src/ArcRequestPanelElement.js';
 export { ArcRequestWorkspaceElement } from './src/ArcRequestWorkspaceElement.js';
+export { WorkspaceTabElement } from './src/WorkspaceTabElement.js';
+export { WorkspaceTabsElement } from './src/WorkspaceTabsElement.js';

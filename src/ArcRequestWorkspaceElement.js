@@ -61,6 +61,7 @@ export const tabsSelectionHandler = Symbol('tabsSelectionHandler');
 export const requestChangeHandler = Symbol('requestChangeHandler');
 export const tabDragStartHandler = Symbol('tabDragStartHandler');
 export const tabDragEndHandler = Symbol('tabDragEndHandler');
+export const tabCloseHandler = Symbol('tabCloseHandler');
 export const reorderInfo = Symbol('reorderInfo');
 export const workspaceValue = Symbol('workspaceValue');
 export const restoreRequests = Symbol('restoreRequests');
@@ -173,8 +174,9 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
   constructor() {
     super();
     /**  
+     * Note, tabs are in sync with workspace requests array
+     * 
      * @type {WorkspaceTab[]}
-     * Mote, tabs are in sync with workspace requests array
      */
     this[tabsValue] = [];
     /** 
@@ -273,6 +275,8 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
   async restore() {
     this.clear();
     const result = await WorkspaceEvents.read(this, this.backendId);
+    /** @type DomainWorkspace */
+    let value;
     if (result) {
       if (!result.id) {
         result.id = v4();
@@ -280,14 +284,14 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
       if (Array.isArray(result.requests)) {
         result.requests = result.requests.map((request) => BodyProcessor.restoreRequest(request));
       }
-      this[workspaceValue] = result;
+      value = result;
     } else {
-      this[workspaceValue] = /** @type DomainWorkspace */ ({
+      value = /** @type DomainWorkspace */ ({
         kind: 'ARC#DomainWorkspace',
         id: v4(),
       });
     }
-    this.processWorkspace(this[workspaceValue]);
+    this.setWorkspace(value);
     await this.requestUpdate();
     this.notifyResize();
   }
@@ -332,7 +336,8 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
    * Updates local properties from the workspace state file.
    * @param {DomainWorkspace} workspace
    */
-  processWorkspace(workspace) {
+  setWorkspace(workspace) {
+    this[workspaceValue] = workspace;
     this[restoreRequests](workspace.requests);
     if (typeof workspace.selected === 'number') {
       this.selected = workspace.selected;
@@ -950,7 +955,7 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
    * Clears the workspace
    */
   clear() {
-    this[tabsValue] = [];
+    this[tabsValue] = /** @type WorkspaceTab[] */ ([]);
     this[requestsValue] = /** @type WorkspaceRequest[] */ ([]);
     this.selected = undefined;
     this[workspaceValue].selected = undefined;
@@ -1109,7 +1114,7 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
       const item = items.splice(fromIdx, 1)[0];
       items.splice(toIdx, 0, item);
     }
-    this[tabsValue] = items;
+    this[tabsValue] = /** @type WorkspaceTab[] */ (items);
     this.requestUpdate();
     return toIdx;
   }
@@ -1340,6 +1345,19 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
   }
 
   /**
+   * A handler for the `close` event dispatched by the editor tab. Closes a panel.
+   * @param {Event} e
+   */
+  [tabCloseHandler](e) {
+    const node = /** @type WorkspaceTabElement */ (e.currentTarget);
+    const index = Number(node.dataset.index);
+    if (Number.isNaN(index)) {
+      return;
+    }
+    this.removeRequest(index);
+  }
+
+  /**
    * A handler for the `close` event dispatched by the request panel. Closes the panel.
    * @param {Event} e
    */
@@ -1529,6 +1547,7 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
       class=${classMap(classes)}
       @dragstart="${this[tabDragStartHandler]}"
       @dragend="${this[tabDragEndHandler]}"
+      @close="${this[tabCloseHandler]}"
     >
       <span class="tab-name">${item.label}</span>
       <arc-icon class="close-icon" data-index="${index}" icon="close" @click="${this[closeRequestHandler]}"></arc-icon>
