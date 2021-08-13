@@ -73,6 +73,7 @@ export declare const storeWorkspaceMeta: unique symbol;
 
 export declare class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMixin(LitElement)) {
   static get styles(): CSSResult;
+  [workspaceValue]: DomainWorkspace;
 
   /** 
    * The index of the selected panel. This is the index of the tab to be selected.
