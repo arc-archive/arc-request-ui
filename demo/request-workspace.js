@@ -17,11 +17,12 @@ import '@anypoint-web-components/anypoint-dialog/anypoint-dialog.js';
 import '@anypoint-web-components/anypoint-dialog/anypoint-dialog-scrollable.js';
 import '@advanced-rest-client/client-certificates/certificate-import.js';
 import '@advanced-rest-client/bottom-sheet/bottom-sheet.js';
+import { OAuth2Authorization } from '@advanced-rest-client/authorization';
 import { ExportHandlerMixin } from '@advanced-rest-client/arc-demo-helper/src/ExportHandlerMixin.js';
 import listenEncoding from '@advanced-rest-client/arc-demo-helper/src/EncodingHelpers.js';
 import { RequestFactory, ModulesRegistry, RequestAuthorization, ResponseAuthorization, ArcFetchRequest, RequestCookies } from '@advanced-rest-client/request-engine';
 import { ArcMock } from '@advanced-rest-client/arc-data-generator';
-import { ArcModelEvents, ImportEvents, ArcNavigationEventTypes, TransportEventTypes, TransportEvents, WorkspaceEventTypes, ProjectActions, SessionCookieEventTypes } from '@advanced-rest-client/arc-events';
+import { ArcModelEvents, ImportEvents, ArcNavigationEventTypes, TransportEventTypes, TransportEvents, WorkspaceEventTypes, ProjectActions, SessionCookieEventTypes, AuthorizationEventTypes } from '@advanced-rest-client/arc-events';
 import { MonacoLoader } from '@advanced-rest-client/monaco-support';
 import jexl from '../web_modules/jexl/dist/Jexl.js';
 import '../arc-request-workspace.js';
@@ -34,6 +35,9 @@ import '../arc-request-workspace.js';
 /** @typedef {import('@advanced-rest-client/arc-events').WorkspaceWriteEvent} WorkspaceWriteEvent */
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ArcEditorRequest} ArcEditorRequest */
 /** @typedef {import('@advanced-rest-client/arc-types').Workspace.DomainWorkspace} DomainWorkspace */
+/** @typedef {import('@advanced-rest-client/arc-events').OAuth2AuthorizeEvent} OAuth2AuthorizeEvent */
+/** @typedef {import('@advanced-rest-client/arc-types').Authorization.TokenInfo} TokenInfo */
+/** @typedef {import('@advanced-rest-client/arc-types').Authorization.OAuth2Authorization} OAuth2Settings */
 
 ModulesRegistry.register(ModulesRegistry.request, '@advanced-rest-client/request-engine/request/request-authorization', RequestAuthorization, ['store', 'events']);
 ModulesRegistry.register(ModulesRegistry.response, '@advanced-rest-client/request-engine/response/request-authorization', ResponseAuthorization, ['store', 'events']);
@@ -83,6 +87,7 @@ class ComponentDemo extends ExportHandlerMixin(DemoPage) {
     window.addEventListener(TransportEventTypes.transport, this.transportRequest.bind(this));
     window.addEventListener(WorkspaceEventTypes.read, this._workspaceReadHandler.bind(this));
     window.addEventListener(WorkspaceEventTypes.write, this._workspaceWriteHandler.bind(this));
+    window.addEventListener(AuthorizationEventTypes.OAuth2.authorize, this._oauth2AuthorizeHandler.bind(this));
     window.addEventListener(SessionCookieEventTypes.update, (e) => {
       // @ts-ignore
       console.log('Cookie update', e.cookie);
@@ -140,6 +145,7 @@ class ComponentDemo extends ExportHandlerMixin(DemoPage) {
     let result = /** @type DomainWorkspace */ (null);
     try {
       const data = JSON.parse(raw);
+      console.log(data);
       if (data && data.kind === 'ARC#DomainWorkspace') {
         result = data;
       }
@@ -252,6 +258,27 @@ class ComponentDemo extends ExportHandlerMixin(DemoPage) {
 
   openMetaEditorHandler() {
     this.workspace.openWorkspaceEditor();
+  }
+
+  /**
+   * @param {OAuth2AuthorizeEvent} e
+   */
+  _oauth2AuthorizeHandler(e) {
+    const config = { ...e.detail };
+    e.detail.result = this.authorize(config);
+  }
+
+  /**
+   * Authorize the user using provided settings.
+   * This is left for compatibility. Use the `OAuth2Authorization` instead.
+   *
+   * @param {OAuth2Settings} settings The authorization configuration.
+   * @returns {Promise<TokenInfo>}
+   */
+  async authorize(settings) {
+    const auth = new OAuth2Authorization(settings);
+    auth.checkConfig();
+    return auth.authorize();
   }
 
   _demoTemplate() {

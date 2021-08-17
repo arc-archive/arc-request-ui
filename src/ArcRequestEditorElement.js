@@ -716,11 +716,13 @@ export class ArcRequestEditorElement extends ArcResizableMixin(EventsTargetMixin
     methods.forEach((authMethod) => {
       const { type: mType } = authMethod;
       const config = (authMethod && authMethod.serialize) ? authMethod.serialize() : undefined;
+      const valid = (authMethod && authMethod.validate) ? authMethod.validate() : true;
       const enabled = type.includes(mType);
       result.push({
         config,
         type: mType,
         enabled,
+        valid,
       });
     });
     this.authorization = result;

@@ -85,7 +85,7 @@ function oa2AuthTemplate(compatibility, outlined, oauth2RedirectUri, config={}) 
   const {
     accessToken, tokenType, scopes, clientId, grantType, deliveryMethod,
     deliveryName, clientSecret, accessTokenUri, authorizationUri,
-    username, password,
+    username, password, redirectUri,
   } = (config.config || {});
   return html`<authorization-method
     ?compatibility="${compatibility}"
@@ -103,7 +103,8 @@ function oa2AuthTemplate(compatibility, outlined, oauth2RedirectUri, config={}) 
     .accessTokenUri="${accessTokenUri}"
     .username="${username}"
     .password="${password}"
-    .redirectUri="${oauth2RedirectUri}"
+    .redirectUri="${redirectUri || oauth2RedirectUri}"
+    allowRedirectUriChange
   ></authorization-method>`;
 }
 
