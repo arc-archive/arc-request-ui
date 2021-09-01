@@ -17,6 +17,7 @@ import '@anypoint-web-components/anypoint-dialog/anypoint-dialog.js';
 import '@anypoint-web-components/anypoint-dialog/anypoint-dialog-scrollable.js';
 import '@advanced-rest-client/client-certificates/certificate-import.js';
 import '@advanced-rest-client/bottom-sheet/bottom-sheet.js';
+import '@advanced-rest-client/authorization/oidc-authorization.js'
 import { OAuth2Authorization } from '@advanced-rest-client/authorization';
 import { ExportHandlerMixin } from '@advanced-rest-client/arc-demo-helper/src/ExportHandlerMixin.js';
 import listenEncoding from '@advanced-rest-client/arc-demo-helper/src/EncodingHelpers.js';
@@ -70,7 +71,7 @@ class ComponentDemo extends ExportHandlerMixin(DemoPage) {
     this.workspaceId = 'default';
     
     this.generator = new ArcMock();
-    this.oauth2RedirectUri = 'http://auth.advancedrestclient.com/arc.html';
+    this.oauth2RedirectUri = 'https://auth.advancedrestclient.com/arc.html';
     
     this.generateData = this.generateData.bind(this);
     this.deleteData = this.deleteData.bind(this);
@@ -389,6 +390,7 @@ class ComponentDemo extends ExportHandlerMixin(DemoPage) {
       <variables-model></variables-model>
       <auth-data-model></auth-data-model>
       <websocket-url-history-model></websocket-url-history-model>
+      <oidc-authorization></oidc-authorization>
       ${this._demoTemplate()}
       ${this._dataControlsTemplate()}
       ${this._certImportTemplate()}

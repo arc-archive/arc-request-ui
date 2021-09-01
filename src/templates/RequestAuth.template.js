@@ -6,6 +6,7 @@ import '@advanced-rest-client/client-certificates/cc-authorization-method.js'
 /** @typedef {import('lit-element').TemplateResult} TemplateResult */
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.RequestAuthorization} RequestAuthorization */
 /** @typedef {import('../types').AuthorizationTemplateOptions} AuthorizationTemplateOptions */
+/** @typedef {import('@advanced-rest-client/arc-types').Authorization.OidcAuthorization} OidcAuthorization */
 
 /**
  * @param {boolean} compatibility
@@ -85,7 +86,7 @@ function oa2AuthTemplate(compatibility, outlined, oauth2RedirectUri, config={}) 
   const {
     accessToken, tokenType, scopes, clientId, grantType, deliveryMethod,
     deliveryName, clientSecret, accessTokenUri, authorizationUri,
-    username, password, redirectUri,
+    username, password, redirectUri, assertion, deviceCode, pkce,
   } = (config.config || {});
   return html`<authorization-method
     ?compatibility="${compatibility}"
@@ -104,6 +105,55 @@ function oa2AuthTemplate(compatibility, outlined, oauth2RedirectUri, config={}) 
     .username="${username}"
     .password="${password}"
     .redirectUri="${redirectUri || oauth2RedirectUri}"
+    .assertion="${assertion}"
+    .deviceCode="${deviceCode}"
+    .pkce="${pkce}"
+    allowRedirectUriChange
+  ></authorization-method>`;
+}
+
+/**
+ * @param {boolean} compatibility
+ * @param {boolean} outlined
+ * @param {string} oauth2RedirectUri
+ * @param {any} [config={}]
+ * @returns {TemplateResult} The template for the NTLM auth type.
+ */
+function oidcAuthTemplate(compatibility, outlined, oauth2RedirectUri, config={}) {
+  const state = /** @type OidcAuthorization */ (config.config || {});
+  const {
+    scopes, clientId, grantType, deliveryMethod,
+    deliveryName, clientSecret, accessTokenUri, authorizationUri,
+    username, password, redirectUri, assertion, grantTypes, deviceCode,
+    issuerUri, pkce, responseType, serverScopes, supportedResponses, tokenInUse,
+    tokenType, tokens,
+  } = state;
+  return html`<authorization-method
+    ?compatibility="${compatibility}"
+    ?outlined="${outlined}"
+    type="open id"
+    .scopes="${scopes}"
+    .clientId="${clientId}"
+    .clientSecret="${clientSecret}"
+    .grantType="${grantType}"
+    .oauthDeliveryMethod="${deliveryMethod}"
+    .oauthDeliveryName="${deliveryName}"
+    .authorizationUri="${authorizationUri}"
+    .accessTokenUri="${accessTokenUri}"
+    .username="${username}"
+    .password="${password}"
+    .redirectUri="${redirectUri || oauth2RedirectUri}"
+    .issuerUri="${issuerUri}"
+    .assertion="${assertion}"
+    .grantTypes="${grantTypes}"
+    .deviceCode="${deviceCode}"
+    .pkce="${pkce}"
+    .responseType="${responseType}"
+    .serverScopes="${serverScopes}"
+    .supportedResponses="${supportedResponses}"
+    .tokenInUse="${tokenInUse}"
+    .tokenType="${tokenType}"
+    .tokens="${tokens}"
     allowRedirectUriChange
   ></authorization-method>`;
 }
@@ -171,6 +221,7 @@ export default function authorizationTemplate(changeHandler, config, auth=[]) {
     ${bearerTemplate(compatibility, outlined, readConfiguration(auth, 'bearer'))}
     ${ntlmTemplate(compatibility, outlined, readConfiguration(auth, 'ntlm'))}
     ${oa2AuthTemplate(compatibility, outlined, oauth2RedirectUri, readConfiguration(auth, 'oauth 2'))}
+    ${oidcAuthTemplate(compatibility, outlined, oauth2RedirectUri, readConfiguration(auth, 'open id'))}
     ${ccTemplate(compatibility, outlined, readConfiguration(auth, 'client certificate'))}
   </authorization-selector>
   `;

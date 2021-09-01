@@ -43,6 +43,10 @@ url-input-editor {
   /* --url-input-editor-border-color: transparent; */
 }
 
+authorization-method {
+  max-width: 900px;
+}
+
 .http-label {
   display: block;
   width: 24px;
