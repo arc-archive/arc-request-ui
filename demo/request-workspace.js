@@ -45,6 +45,7 @@ ModulesRegistry.register(ModulesRegistry.response, '@advanced-rest-client/reques
 ModulesRegistry.register(ModulesRegistry.request, '@advanced-rest-client/request-engine/request/cookies', RequestCookies.processRequestCookies, ['events']);
 ModulesRegistry.register(ModulesRegistry.response, '@advanced-rest-client/request-engine/response/cookies', RequestCookies.processResponseCookies, ['events']);
 
+/* global PouchDB */
 
 // const WORKSPACE_STORE_KEY = 'demo.arc-request-ui.workspace';
 
@@ -70,7 +71,9 @@ class ComponentDemo extends ExportHandlerMixin(DemoPage) {
     this.noSendOnLoading = false;
     this.workspaceId = 'default';
     
-    this.generator = new ArcMock();
+    this.generator = new ArcMock({
+      store: PouchDB,
+    });
     this.oauth2RedirectUri = 'https://auth.advancedrestclient.com/arc.html';
     
     this.generateData = this.generateData.bind(this);
