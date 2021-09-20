@@ -201,10 +201,10 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
     /** 
      * @type {DomainWorkspace}
      */
-    this[workspaceValue] = {
+    this[workspaceValue] = /** @type DomainWorkspace */ ({
       kind: 'ARC#DomainWorkspace',
       id: v4(),
-    };
+    });
     /** 
      * @type {string}
      */
@@ -1086,6 +1086,7 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
       dragIndex: undefined,
       overIndex: undefined,
       moves: [],
+      dirOffset: 0,
     };
   }
 
@@ -1548,6 +1549,7 @@ export class ArcRequestWorkspaceElement extends ArcResizableMixin(EventsTargetMi
       @dragstart="${this[tabDragStartHandler]}"
       @dragend="${this[tabDragEndHandler]}"
       @close="${this[tabCloseHandler]}"
+      title="${item.label}"
     >
       <span class="tab-name">${item.label}</span>
       <arc-icon class="close-icon" data-index="${index}" icon="close" @click="${this[closeRequestHandler]}"></arc-icon>

@@ -43,7 +43,8 @@ export default css`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  /* direction: rtl; */
+  direction: rtl;
+  text-align: end;
 }
 
 .tab-divider {
