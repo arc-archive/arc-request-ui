@@ -1,4 +1,8 @@
-# ARC request UI elements
+# Deprecated
+
+This component is deprecated. Use `@advanced-rest-client/app` instead.
+
+----
 
 This module contains all UIs related to Advanced REST Client requests.
 
